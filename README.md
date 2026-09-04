@@ -33,3 +33,27 @@ The design inspiration is https://notes.andymatuschak.org.
 - You can set an explicit goal for why you're reading. Maybe you're reading papers on homeschooling to decide the best course for your child, or researching vocal technique to sing better. Knowing the goal, on top of everything else about your life, lets the agent explain things even better.
 - It stores the concepts you drilled into so they're easy to revisit.
 - Once you have it in your agent's memory, you can also just ask it - "open this thing in RabbitHole".
+- While elaborating on a chosen concept, there is an optional "focus on…" field to steer a single explanation or even have a chat.
+- Personalization - (role, notes, preferences) shapes every explanation
+Reader model the agent writes to — notes on how you like things explained
+- Localstorage is used for all things persistent
+
+## Set up and run
+
+To install dependencies:
+
+```bash
+bun install
+```
+
+To start a development server:
+
+```bash
+bun dev
+```
+
+To run for production:
+
+```bash
+bun start
+```
