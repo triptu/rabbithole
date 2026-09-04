@@ -71,7 +71,7 @@ export function Profile() {
             ))}
           </div>
           <div className="mt-2.5 flex items-center justify-between text-[10.5px] text-dark-muted">
-            <span>the agent writes here via rabbithole_remember</span>
+            <span>the agent writes here via rabbithole_update_reader</span>
             {notes.length > 0 && (
               <button onClick={() => reader.clearNotes()} className="border-none bg-transparent text-[10.5px] text-dark-muted underline decoration-dotted underline-offset-2 hover:text-accent-light">
                 clear

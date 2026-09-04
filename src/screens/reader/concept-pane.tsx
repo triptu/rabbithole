@@ -148,7 +148,7 @@ function Loading({ pane, index }: { pane: Pane; index: number }) {
       <div className="rh-shimmer w-[70%]" />
       <div className="mt-2 animate-pulse-soft font-mono text-[11px] text-faint">{PHRASES[(index + 1) % PHRASES.length]}</div>
       <div className="mt-1.5 flex items-center gap-2 font-mono text-[10.5px] text-muted">
-        <StatusDot on size={6} />
+        <StatusDot on breathe size={6} />
         <span>{handoff}</span>
         <span className="text-line-2">{elapsed}s</span>
       </div>

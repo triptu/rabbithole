@@ -161,17 +161,22 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
     const parsed = parseSource(args.text);
     if (!parsed.blocks.length) return null;
     const docId = newId("d");
-    const title = args.title?.trim() || parsed.title || firstLine(parsed.blocks) || "Pasted text";
+    let blocks = parsed.blocks;
+    let title = args.title?.trim() || parsed.title || "";
+    if (!title) {
+      // a short first line without sentence punctuation is a title, not a paragraph
+      const first = blocks[0];
+      const lead = first && (first.type === "heading" || first.type === "paragraph") ? first.text : "";
+      if (lead && lead.length <= 80 && !/[.!?:;]\s|[.!?]$/.test(lead) && blocks.length > 1) {
+        title = lead;
+        blocks = blocks.slice(1);
+      } else title = lead ? phraseLabel(lead, 80) : "Pasted text";
+    }
     clearTimers();
     m.setSession({ docId, panes: [], selection: null, reveal: null, loading: null });
-    createDocument({ id: docId, title, url: null, blocks: parsed.blocks, source: "text", terms: args.terms });
+    createDocument({ id: docId, title, url: null, blocks, source: "text", terms: args.terms });
     return docId;
   }
-
-  const firstLine = (blocks: Block[]) => {
-    const b = blocks.find((x) => x.type === "heading" || x.type === "paragraph");
-    return b && "text" in b ? phraseLabel(b.text, 80) : "";
-  };
 
   /** persist a new verbatim document and ask the agent for its terms unless they came along */
   function createDocument(d: { id: string; title: string; url: string | null; blocks: Block[]; source: "url" | "text"; terms?: string[] }) {
@@ -584,9 +589,9 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
     open("lab");
     say("Opening your blood results in Rabbithole. Click anything you don’t recognise — I’ll explain it for you, not from a pamphlet.");
     after(2000, () => {
-      call("rabbithole_get_state");
+      call("rabbithole_get_reader");
       const goal = "know what to change before my follow-up in 3 months";
-      call("rabbithole_set_goal", JSON.stringify({ goal }));
+      call("rabbithole_update_reader", JSON.stringify({ goal }));
       if (alive()) setGoal(goal);
     });
     after(4000, () => {
@@ -596,7 +601,7 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
     after(6300, () => say("Since your goal is the follow-up: A1c and triglycerides usually move together. Want the triglycerides row next?"));
     after(9000, () => {
       const note = "reads lab results with a specific follow-up date in mind — lead with what is actionable";
-      call("rabbithole_remember", JSON.stringify({ notes: [note] }));
+      call("rabbithole_update_reader", JSON.stringify({ notes: [note] }));
       if (alive()) remember([note], "agent");
     });
     after(12600, () => alive() && m.setSession({ say: null }));
@@ -615,6 +620,26 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
   }
   function saveProfile(patch: Partial<Pick<Profile, "role" | "notes" | "prefs">>) {
     m.setProfile(patch);
+  }
+  /**
+   * The agent's view of "who am I explaining to", in one call. Any field may be
+   * omitted; preferences named here are turned on (new ones are added), notes are
+   * appended to the reader model.
+   */
+  function updateReader(patch: { role?: string; preferences?: string[]; instructions?: string; goal?: string; notes?: string[] }) {
+    const p = get().profile;
+    const profile: Partial<Profile> = {};
+    if (patch.role !== undefined) profile.role = patch.role;
+    if (patch.instructions !== undefined) profile.notes = patch.instructions;
+    if (patch.goal !== undefined) profile.goal = patch.goal;
+    if (patch.preferences) {
+      const prefs = { ...p.prefs };
+      for (const k of Object.keys(prefs)) prefs[k] = false;
+      for (const k of patch.preferences) prefs[k.toLowerCase()] = true;
+      profile.prefs = prefs;
+    }
+    if (Object.keys(profile).length) m.setProfile(profile);
+    if (patch.notes?.length) remember(patch.notes, "agent");
   }
   /** Append to the reader model. `source` is who wrote it, e.g. "agent". */
   function remember(notes: string[], source = "agent") {
@@ -735,6 +760,7 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
     toggleConceptBookmark,
     setGoal,
     saveProfile,
+    updateReader,
     remember,
     clearNotes,
     toast,

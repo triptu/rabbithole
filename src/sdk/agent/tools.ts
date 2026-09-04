@@ -1,8 +1,8 @@
 /**
  * Agent → page tools. Deliberately few: the human drives the reading; the agent
- * fetches the protocol, sees what they see, opens things for them, and remembers
- * them. Everything the page needs *from* the agent travels the other way as events
- * (see events.ts).
+ * fetches the protocol, learns who it is explaining to (get/update_reader), sees what
+ * they see, and opens things for them. Everything the page needs *from* the agent
+ * travels the other way as events (see events.ts).
  */
 import { strip } from "../content/markers";
 import type { Reader } from "../reader";
@@ -78,29 +78,43 @@ export function buildTools({ reader, store, protocol }: { reader: Reader; store:
       },
     },
     {
-      name: T("set_goal"),
-      description: "Set the reader’s current reading goal. Every explanation is tuned to it.",
-      inputSchema: { type: "object", properties: { goal: S }, required: ["goal"], additionalProperties: false },
-      execute: (input) => {
-        const goal = String(input.goal ?? "").trim();
-        reader.setGoal(goal);
-        return { ok: true, goal };
+      name: T("get_reader"),
+      description:
+        "Who you are explaining to: role and field, how they like things explained (preferences), standing instructions, the current reading goal, and the notes you wrote about them before. Read this first; if you know this person better than it does, fix it with rabbithole_update_reader.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      annotations: { readOnlyHint: true },
+      execute: () => {
+        const s = store.getState();
+        return {
+          role: s.profile.role,
+          preferences: Object.entries(s.profile.prefs).filter(([, on]) => on).map(([k]) => k),
+          instructions: s.profile.notes,
+          goal: s.profile.goal,
+          notes: s.notes.map((n) => ({ text: n.text, source: n.source })),
+        };
       },
     },
     {
-      name: T("remember"),
+      name: T("update_reader"),
       description:
-        "Record what you learned about the reader — things they already know, things they struggled with, how they like things explained. Persists across sessions and shapes every future explanation.",
+        "Shape every future explanation. Set any of: role (what they do and know), preferences (how to explain — e.g. code analogies, concrete first), instructions (standing rules in their words), goal (why they are reading right now), notes (short durable facts you learned about how this reader reads). Omitted fields are kept.",
       inputSchema: {
         type: "object",
-        properties: { notes: { type: "array", items: S, description: "short notes, one fact each" } },
-        required: ["notes"],
+        properties: {
+          role: { ...S, description: "e.g. 'Software engineer — distributed systems, TypeScript'" },
+          preferences: { type: "array", items: S, description: "explanation styles to turn on; unknown ones are added" },
+          instructions: { ...S, description: "standing instructions, replaces the previous text" },
+          goal: { ...S, description: "current reading goal; empty string clears it" },
+          notes: { type: "array", items: S, description: "appended to what you already know about this reader" },
+        },
         additionalProperties: false,
       },
       execute: (input) => {
-        const notes = Array.isArray(input.notes) ? input.notes.map(String).filter(Boolean) : [];
-        reader.remember(notes, "agent");
-        return { ok: true, remembered: notes.length, total: store.getState().notes.length };
+        const str = (k: string) => (typeof input[k] === "string" ? (input[k] as string).trim() : undefined);
+        const list = (k: string) => (Array.isArray(input[k]) ? (input[k] as unknown[]).map(String).map((x) => x.trim()).filter(Boolean) : undefined);
+        reader.updateReader({ role: str("role"), preferences: list("preferences"), instructions: str("instructions"), goal: str("goal"), notes: list("notes") });
+        const s = store.getState();
+        return { ok: true, role: s.profile.role, goal: s.profile.goal, notes: s.notes.length };
       },
     },
   ];

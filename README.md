@@ -52,6 +52,27 @@ Reader model the agent writes to — notes on how you like things explained
 - Suggested actions — "add this to our repo" while reading an engineering blog, or "add this to your slides" if it relates to a presentation you're working on.
 
 
+## How the agent link works
+
+Rabbithole has no server and no bundled model. It registers a few WebMCP tools; your own agent picks them up. You paste two lines into the agent once:
+
+> Rabbithole is open in this tab and exposes WebMCP tools. Call `rabbithole_get_protocol` once, then follow it until I tell you to stop.
+
+`rabbithole_get_protocol` returns the real instructions. From then on the page hands the agent work through a reliable duplex channel (`rabbithole_await_event` / `rabbithole_complete_event`, at-least-once delivery, idempotent completion — see `webmcp-duplex-prototype/`). Every event payload carries a one-line `reminder` of the result shape.
+
+Page → agent events
+
+| event | when | result |
+| --- | --- | --- |
+| `document.annotate` | a document was opened; the text is shown verbatim | `{ terms: string[], title? }` — the page highlights the first occurrence of each |
+| `concept.explain` | the reader clicked a marked term | `{ short, links }` |
+| `selection.ask` | the reader highlighted a phrase (maybe with a question) | `{ short, links }` |
+| `concept.elaborate` | Elaborate / a follow-up in a pane | `{ text, anec, html }` |
+
+Agent → page tools: `rabbithole_get_protocol`, `rabbithole_get_reader` / `rabbithole_update_reader` (role, preferences, standing instructions, goal, and the notes the agent keeps about how you read — the protocol asks the agent to fill these in from its own memory of you before the first event), `rabbithole_get_state`, `rabbithole_open` (a url, or the agent's own text with optional title and terms — "open this in rabbithole").
+
+The pill in the top bar shows the link status. If the agent stops polling it turns to "agent disconnected"; clicking it explains and offers a reconnect prompt.
+
 ## Set up and run
 
 ```bash
@@ -74,16 +95,17 @@ src/sdk/                    no UI. Everything the app *does*.
   reader.ts                 use-cases the UI calls: open documents, slide panes, ask, elaborate, bookmarks, profile
   agent/agent.ts            Agent: queue(event) → duplex channel → on(type, handler); tool registration; activity log
   agent/events.ts           the page → agent event contract (payloads, results, validators)
-  agent/instructions.ts     what the agent is told about each event (the prompts)
-  agent/tools.ts            agent → page tools: get_state, open, set_goal, remember
+  agent/instructions.ts     paste prompt, protocol text, per-event reminders
+  agent/tools.ts            agent → page tools: get_protocol, get_reader, update_reader, get_state, open
   agent/duplex-mcp-sdk.js   the reliable await_event / complete_event channel (from webmcp-duplex-prototype, verbatim)
   agent/mock.ts             dev stand-in agent that drives the real channel
-  content/markers.ts        [[term]] parsing, slugs, ids;  content/fetch.ts  url → text (Jina)
+  content/markers.ts        [[term]] parsing, first-occurrence marking, slugs, ids
+  content/source.ts         pasted text / fetched markdown → verbatim blocks;  content/fetch.ts  url → text (Jina)
   seed/                     the demo documents and concepts
 
 src/App.tsx                 router + shell;  src/hooks.ts  useStore(selector), useReader(), useAgent()
 src/components/             top bar, agent drawer, toast, <Marked/> (clickable terms), ui/ primitives
-src/screens/home.tsx · history.tsx · profile.tsx
+src/screens/home.tsx · history.tsx · profile.tsx · about.tsx
 src/screens/reader/         reader.tsx (stepper + pane strip), article-pane, concept-pane, blocks (one renderer per block type),
                             selection-popover (highlight-to-ask), use-sliding-panes (the sticky-pane geometry)
 styles/globals.css          the palette, fonts and keyframes as Tailwind theme tokens

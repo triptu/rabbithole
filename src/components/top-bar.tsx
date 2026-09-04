@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { BookmarkIcon, StatusDot, Wordmark } from "@/components/icons";
+import { BookmarkIcon, SettingsIcon, StatusDot, Wordmark } from "@/components/icons";
+import { PromptCard } from "@/components/prompt-card";
 import { Button } from "@/components/ui/button";
-import { initial, useReader, useStore } from "@/hooks";
-import { currentDocument } from "@/sdk";
+import { useReader, useStore } from "@/hooks";
+import { currentDocument, type LinkStatus } from "@/sdk";
 
-export function TopBar({ agentOpen, onToggleAgent }: { agentOpen: boolean; onToggleAgent: () => void }) {
+export function TopBar() {
   const reader = useReader();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const doc = useStore(currentDocument);
-  const role = useStore((s) => s.profile.role);
+  const drawerOpen = useStore((s) => s.session.drawerOpen);
   const onReader = pathname.startsWith("/read/");
+  const onHome = pathname === "/";
   const onHistory = pathname === "/history";
+  const onAbout = pathname === "/about";
   const onProfile = pathname === "/profile";
 
   const goHome = () => {
@@ -57,22 +60,22 @@ export function TopBar({ agentOpen, onToggleAgent }: { agentOpen: boolean; onTog
 
       <div className="flex-1" />
 
-      {onReader && (
-        <Button variant="outline" size="nav" onClick={goHome}>
-          + new
+      <AgentPill open={drawerOpen} onToggle={() => reader.setDrawerOpen(!drawerOpen)} />
+      {(onHome || onAbout) && (
+        <Button variant="nav" size="nav" on={onAbout} onClick={() => navigate("/about")}>
+          About
         </Button>
       )}
-      <AgentPill open={agentOpen} onClick={onToggleAgent} />
       <Button variant="nav" size="nav" on={onHistory} onClick={() => navigate("/history")}>
         History
       </Button>
       <button
         onClick={() => navigate("/profile")}
-        title="Your profile"
+        title="Your profile — what the agent knows about you"
         data-on={onProfile}
-        className="ml-1 flex size-7 flex-none items-center justify-center rounded-full border-none bg-ink text-[11px] font-bold text-accent-light data-[on=true]:shadow-[0_0_0_2px_#fff,0_0_0_4px_var(--color-accent)]"
+        className="ml-1 flex size-7 flex-none items-center justify-center rounded-full border-none bg-transparent text-slate hover:bg-panel hover:text-ink data-[on=true]:bg-panel data-[on=true]:text-ink"
       >
-        {initial(role)}
+        <SettingsIcon />
       </button>
     </div>
   );
@@ -110,23 +113,76 @@ function GoalChip() {
   );
 }
 
-/** The "agent linked" pill: breathing dot when linked or recently busy. */
-function AgentPill({ open, onClick }: { open: boolean; onClick: () => void }) {
-  const available = useStore((s) => s.agent.available);
+/** idle and polling share a label — the dot (grey vs accent) tells them apart */
+const PILL_LABEL: Record<LinkStatus, string> = {
+  unavailable: "unavailable",
+  idle: "agent",
+  polling: "agent",
+  disconnected: "agent disconnected",
+};
+
+/**
+ * The link-status pill. Grey dot: WebMCP tools registered, nobody polling yet. Accent
+ * dot: an agent is in the await_event loop. "disconnected": it was and stopped —
+ * clicking that opens an explainer with the reconnect prompt instead of the drawer.
+ * Never blinks.
+ */
+function AgentPill({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  const link = useStore((s) => s.agent.link);
   const mock = useStore((s) => s.agent.mock);
-  const lastCallAt = useStore((s) => s.agent.lastCallAt);
-  const busy = lastCallAt !== null && Date.now() - lastCallAt < 4000;
-  const live = available || mock;
+  const status: LinkStatus = mock ? "polling" : link;
+  const [explain, setExplain] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  // close the explainer on outside click, or once the link recovers
+  useEffect(() => {
+    if (!explain) return;
+    const onDown = (e: MouseEvent) => !wrap.current?.contains(e.target as Node) && setExplain(false);
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [explain]);
+  useEffect(() => {
+    if (status !== "disconnected") setExplain(false);
+  }, [status]);
+
   return (
-    <button
-      onClick={onClick}
-      title="WebMCP agent link — tools this page exposes to your browser agent"
-      data-open={open}
-      data-live={live}
-      className="flex items-center gap-2 rounded-full border border-line bg-transparent py-[5px] pr-3 pl-[9px] text-[11.5px] font-semibold text-slate hover:border-accent data-[live=true]:border-accent data-[open=true]:bg-panel"
-    >
-      <StatusDot size={7} on={live || busy} />
-      {available ? "agent linked" : mock ? "mock agent" : "agent"}
-    </button>
+    <div ref={wrap} className="relative">
+      <button
+        onClick={() => (status === "disconnected" ? setExplain((v) => !v) : onToggle())}
+        title={
+          status === "unavailable"
+            ? "No WebMCP in this browser — open the drawer to run a mock agent"
+            : status === "idle"
+              ? "WebMCP tools registered — waiting for an agent to start polling"
+              : status === "polling"
+                ? "Your agent is in the loop"
+                : "Your agent stopped polling"
+        }
+        data-open={open}
+        data-status={status}
+        className="flex items-center gap-2 rounded-full border border-line bg-transparent py-[5px] pr-3 pl-[9px] text-[11.5px] font-semibold text-slate hover:border-accent data-[open=true]:bg-panel data-[status=disconnected]:border-rust data-[status=disconnected]:text-rust data-[status=polling]:border-accent"
+      >
+        <StatusDot tone={status === "polling" ? "accent" : status === "disconnected" ? "rust" : "idle"} size={7} />
+        {mock ? "mock agent" : PILL_LABEL[status]}
+      </button>
+      {explain && <LinkExplainer onDrawer={() => (setExplain(false), onToggle())} />}
+    </div>
+  );
+}
+
+/** Why the pill says disconnected, and the prompt that brings the agent back. */
+function LinkExplainer({ onDrawer }: { onDrawer: () => void }) {
+  const prompt = useStore((s) => s.agent.reconnectPrompt);
+  return (
+    <div className="absolute top-[calc(100%+8px)] right-0 z-40 w-[340px] animate-pop-fade rounded-xl bg-ink px-4 py-3.5 text-[12.5px] leading-[1.55] text-dark-text shadow-[0_10px_30px_rgba(23,26,38,.28)]">
+      <div className="mb-1 font-mono text-[10px] tracking-[0.1em] text-rust">AGENT DISCONNECTED</div>
+      Your agent stopped polling for work, so clicks won’t be answered until it comes back. Paste this into it to pick the loop up again:
+      <div className="mt-2.5 mb-2.5">
+        <PromptCard text={prompt} label="RECONNECT PROMPT" dark />
+      </div>
+      <button onClick={onDrawer} className="border-none bg-transparent p-0 text-[11.5px] text-dark-muted underline decoration-dotted underline-offset-2 hover:text-dark-text">
+        open agent link
+      </button>
+    </div>
   );
 }

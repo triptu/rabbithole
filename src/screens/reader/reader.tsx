@@ -29,13 +29,11 @@ export function Reader({ agentOpen }: { agentOpen: boolean }) {
   return <Panes agentOpen={agentOpen} />;
 }
 
-const STEPS = ["finding words beyond your top-2000", "tuning explanations to you"];
+const DEMO_STEPS = ["finding words beyond your top-2000", "tuning explanations to you"];
 
+/** Demo pages replay the three-step stepper; live urls only show the fetch, then the text appears. */
 function Stepper({ loading, domain }: { loading: DocumentLoading; domain?: string }) {
-  const live = useStore((s) => s.agent.available || s.agent.mock);
-  const first = loading.live ? "fetching & reading the source" : `fetching ${domain ?? ""}`;
-  const labels = [first, ...STEPS];
-  const stalled = loading.live && !live && loading.step >= 1;
+  const labels = loading.live ? ["fetching & reading the source"] : [`fetching ${domain ?? ""}`, ...DEMO_STEPS];
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="flex min-w-[300px] animate-fade-up flex-col gap-3.5">
@@ -54,12 +52,6 @@ function Stepper({ loading, domain }: { loading: DocumentLoading; domain?: strin
             </div>
           );
         })}
-        {stalled && (
-          <div className="mt-2 max-w-[340px] rounded-lg bg-panel px-2.5 py-2 text-[11.5px] leading-[1.5] text-muted">
-            Waiting for an agent to pick this up. Open Rabbithole in a WebMCP browser and ask your agent to help you read — or run the mock
-            agent from the agent drawer.
-          </div>
-        )}
       </div>
     </div>
   );

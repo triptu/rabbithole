@@ -25,6 +25,14 @@ function BlockView({ block }: { block: Block }) {
           <Marked text={block.text} context={context} />
         </p>
       );
+    case "heading": {
+      const size = block.level === 1 ? "text-[24px]" : block.level === 2 ? "text-[20px]" : "text-[17px]";
+      return (
+        <h2 className={`mt-2 mb-0 font-serif ${size} leading-[1.3] font-medium text-ink [text-wrap:pretty]`}>
+          <Marked text={block.text} context={context} />
+        </h2>
+      );
+    }
     case "note":
       return (
         <p className="m-0 font-serif text-[15.5px] leading-[1.7] text-slate [text-wrap:pretty]">

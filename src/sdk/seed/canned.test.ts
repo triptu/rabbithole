@@ -11,6 +11,7 @@ function markerIds(text: string): string[] {
 function blockTexts(block: Block): string[] {
   switch (block.type) {
     case "paragraph":
+    case "heading":
     case "note":
     case "hint":
       return [block.text];

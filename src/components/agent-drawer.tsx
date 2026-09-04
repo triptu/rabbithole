@@ -3,8 +3,8 @@
  * for the agent, and a live log of every tool call. In browsers without WebMCP it
  * offers a dev mock agent that answers events through the same duplex tools.
  */
-import { useState } from "react";
 import { StatusDot } from "@/components/icons";
+import { PromptCard } from "@/components/prompt-card";
 import { Button } from "@/components/ui/button";
 import { clockLabel, useRabbithole, useStore, useStoreShallow } from "@/hooks";
 
@@ -14,21 +14,25 @@ export function AgentDrawer({ onClose }: { onClose: () => void }) {
   const agent = useStore((s) => s.agent);
   const pending = agent.stats.queued + agent.stats.inflight;
   const hot = useStoreShallow((s) => new Set(s.agent.log.map((e) => e.name)));
-  const live = agent.available || agent.mock;
+  const status = agent.mock ? "polling" : agent.link;
   const busy = agent.lastCallAt !== null && Date.now() - agent.lastCallAt < 4000;
 
   return (
     <div className="fixed top-topbar right-0 bottom-0 z-30 flex w-drawer animate-slide-left flex-col border-l border-line bg-paper shadow-[-12px_0_32px_rgba(23,26,38,.08)]">
       <div className="flex items-center gap-2.5 border-b border-line px-[18px] pt-4 pb-3">
-        <StatusDot on={live || busy} />
+        <StatusDot tone={status === "polling" || busy ? "accent" : status === "disconnected" ? "rust" : "idle"} breathe={status === "polling" || busy} />
         <div className="flex-1">
           <div className="text-[13px] font-bold text-ink">Agent link</div>
           <div className="font-mono text-[10.5px] text-faint">
-            {agent.available
-              ? `modelContext · ${agent.tools.length} tools registered`
-              : agent.mock
-                ? `mock agent · answering ${agent.tools.length} tools locally`
-                : `not in a WebMCP browser · ${agent.tools.length} tools ready`}
+            {agent.mock
+              ? `mock agent · answering ${agent.tools.length} tools locally`
+              : status === "unavailable"
+                ? `WebMCP unavailable in this browser · ${agent.tools.length} tools ready`
+                : status === "idle"
+                  ? `${agent.tools.length} tools registered · no agent polling yet`
+                  : status === "polling"
+                    ? `${agent.tools.length} tools registered · agent polling`
+                    : `agent stopped polling`}
           </div>
         </div>
         <button onClick={onClose} className="border-none bg-transparent text-base text-faint">
@@ -55,6 +59,11 @@ export function AgentDrawer({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      {status === "disconnected" && (
+        <div className="mx-[18px] mt-3.5 rounded-lg border border-danger-line bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.5] text-danger">
+          Your agent stopped polling. Paste the prompt below into it again to pick the loop back up.
+        </div>
+      )}
       {pending > 0 && (
         <div className="mx-[18px] mt-3.5 rounded-lg bg-accent-soft px-3 py-[9px] text-[11.5px] text-accent">
           {pending} request{pending === 1 ? "" : "s"} waiting — the page is handing the agent work via{" "}
@@ -81,43 +90,27 @@ export function AgentDrawer({ onClose }: { onClose: () => void }) {
         ))}
       </div>
 
-      <DrawerFooter available={agent.available} mock={agent.mock} prompt={agent.prompt} />
+      <DrawerFooter available={agent.available} mock={agent.mock} />
     </div>
   );
 }
 
-function DrawerFooter({ available, mock, prompt }: { available: boolean; mock: boolean; prompt: string }) {
+function DrawerFooter({ available, mock }: { available: boolean; mock: boolean }) {
   const rh = useRabbithole();
-  const [copied, setCopied] = useState(false);
-
-  const copyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      rh.reader.toast("Couldn’t copy — the prompt is in the console.");
-      console.info(prompt);
-    }
-  };
+  const link = useStore((s) => s.agent.link);
+  const prompt = useStore((s) => (s.agent.link === "disconnected" ? s.agent.reconnectPrompt : s.agent.prompt));
   const toggleMock = () => (mock ? rh.stopMockAgent() : rh.startMockAgent());
 
   return (
-    <div className="flex items-center gap-2.5 border-t border-line px-[18px] py-3">
-      {available ? (
-        <>
-          <Button variant="primary" size="sm" onClick={copyPrompt}>
-            {copied ? "copied ✓" : "copy agent prompt"}
-          </Button>
-          <span className="text-[11px] text-faint">paste it to your agent once</span>
-        </>
-      ) : (
-        <>
+    <div className="flex flex-col gap-2.5 border-t border-line px-[18px] py-3">
+      <PromptCard text={prompt} label={link === "disconnected" ? "PASTE THIS TO RECONNECT YOUR AGENT" : "Give this to your agent"} />
+      {!available && (
+        <div className="flex items-center gap-2.5">
           <Button variant="primary" size="sm" onClick={toggleMock}>
             {mock ? "■ stop mock agent" : "▶ run a mock agent"}
           </Button>
-          <span className="text-[11px] text-faint">{mock ? "synthetic answers" : "no modelContext here"}</span>
-        </>
+          <span className="text-[11px] text-faint">{mock ? "synthetic answers" : "no WebMCP here — try the flows anyway"}</span>
+        </div>
       )}
     </div>
   );

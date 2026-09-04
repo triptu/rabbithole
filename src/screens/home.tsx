@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { GithubIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { dateLabel, useReader, useStore, useStoreShallow } from "@/hooks";
-import { DEMO_SUGGESTIONS, visitedDocuments } from "@/sdk";
+import { DEMO_SUGGESTIONS, GITHUB_URL, visitedDocuments } from "@/sdk";
 
 export function Home() {
   const reader = useReader();
@@ -23,7 +24,11 @@ export function Home() {
       <div className="flex w-full max-w-[640px] animate-fade-up-400 flex-col">
         <h1 className="m-0 font-serif text-[42px] leading-[1.15] font-medium text-ink [text-wrap:pretty]">What are we untangling today?</h1>
         <p className="mt-3 mb-6 text-[14px] leading-[1.6] text-muted [text-wrap:pretty]">
-          Drop a link or paste raw text. Every word past your comfort zone becomes clickable.
+          Dense documents are hard to read, even in your own field. Research papers, articles, lab results, tax forms, unfamiliar code. Rabbithole lets you zoom in on the parts you don't understand and the explaining is done by your personal assistant aware about your context. More details in{" "}
+          <Link to="/about" className="text-slate underline decoration-dotted underline-offset-[3px] hover:text-accent">
+            About
+          </Link>{" "}
+          and on <Link to={GITHUB_URL} className="text-slate underline decoration-dotted underline-offset-[3px] hover:text-accent">Github</Link>
         </p>
 
         <div className="mb-2.5 flex items-center gap-2">
@@ -84,6 +89,15 @@ export function Home() {
               <span className="text-[15px] text-accent">›</span>
             </div>
           ))}
+        </div>
+
+        <div className="mt-10 flex items-center gap-4 text-[11.5px] text-faint">
+          <a href={GITHUB_URL} target="_blank" rel="noopener" className="flex items-center gap-1.5 text-faint no-underline hover:text-accent">
+            <GithubIcon size={13} /> triptu/rabbithole
+          </a>
+          <Link to="/about" className="text-faint no-underline hover:text-accent">
+            about
+          </Link>
         </div>
       </div>
     </div>

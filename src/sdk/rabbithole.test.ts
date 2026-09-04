@@ -42,10 +42,11 @@ describe("boot", () => {
     expect([...ctx.tools.keys()]).toEqual([
       "rabbithole_await_event",
       "rabbithole_complete_event",
+      "rabbithole_get_protocol",
       "rabbithole_get_state",
       "rabbithole_open",
-      "rabbithole_set_goal",
-      "rabbithole_remember",
+      "rabbithole_get_reader",
+      "rabbithole_update_reader",
     ]);
   });
 
@@ -170,42 +171,92 @@ describe("duplex with the agent", () => {
     expect(s.library.threads.softmax?.messages[0]?.q).toBe("why exponentiate?");
   });
 
-  test("agent opens a pasted text: tool → analyze event → document", async () => {
-    const opened = await ctx.call("rabbithole_open", { input: "Mitochondria are the powerhouse of the cell. They make ATP." });
-    expect(opened.status).toBe("analyzing");
-    const docId = opened.docId as string;
-    expect(rh.store.getState().session.loading?.docId).toBe(docId);
-    expect(rh.store.getState().session.loading?.step).toBe(1);
+  test("pasted text is readable at once; the agent's terms get highlighted where they first appear", async () => {
+    const docId = (await rh.reader.openInput(
+      "Mitochondria are the powerhouse of the cell.\n\nThey make ATP through oxidative phosphorylation. ATP again.",
+    ))!;
+    let s = rh.store.getState();
+    const doc = s.library.documents[docId]!;
+    expect(s.session.loading).toBeNull();
+    expect(doc.blocks.map((b) => b.type)).toEqual(["paragraph", "paragraph"]);
+    expect(doc.annotated).toBeUndefined();
 
     const d = await ctx.call("rabbithole_await_event");
-    expect(d.event.type).toBe("document.analyze");
+    expect(d.event.type).toBe("document.annotate");
     expect(d.event.payload.text).toContain("Mitochondria");
-    expect(d.event.payload.url).toBeNull();
+    expect(d.event.payload.reminder).toContain('"terms"');
     await ctx.call("rabbithole_complete_event", {
       eventId: d.event.id,
-      result: { title: "Cell power", meta: "biology", paragraphs: ["[[Mitochondria]] make [[ATP]].", "That is all."] },
+      result: { terms: ["oxidative phosphorylation", "ATP", "mitochondria"], title: "Cell power" },
     });
-    const s = rh.store.getState();
-    expect(s.session.loading).toBeNull();
-    const doc = s.library.documents[docId]!;
-    expect(doc.title).toBe("Cell power");
-    expect(doc.termCount).toBe(2);
-    expect(doc.source).toBe("text");
+    s = rh.store.getState();
+    const marked = s.library.documents[docId]!;
+    expect(marked.annotated).toBe(true);
+    expect(marked.title).toBe("Cell power");
+    expect(marked.termCount).toBe(3);
+    // verbatim text, first occurrences only, original casing kept
+    expect((marked.blocks[0] as { text: string }).text).toBe("[[mitochondria|Mitochondria]] are the powerhouse of the cell.");
+    expect((marked.blocks[1] as { text: string }).text).toBe("They make [[ATP]] through [[oxidative phosphorylation]]. ATP again.");
 
     const state = await ctx.call("rabbithole_get_state");
     expect(state.document.title).toBe("Cell power");
-    expect(state.document.text).toBe("Mitochondria make ATP.\n\nThat is all.");
+    expect(state.document.text).toBe("Mitochondria are the powerhouse of the cell.\n\nThey make ATP through oxidative phosphorylation. ATP again.");
   });
 
-  test("set_goal and remember shape the reader context", async () => {
-    await ctx.call("rabbithole_set_goal", { goal: "pass the exam" });
-    await ctx.call("rabbithole_remember", { notes: ["knows linear algebra", "knows linear algebra", " "] });
+  test("the agent opens its own text with terms — no round trip", async () => {
+    const r = await ctx.call("rabbithole_open", {
+      title: "Byzantine generals, briefly",
+      text: "# Generals\n\nSeveral generals must agree on a plan while some may be traitors.",
+      terms: ["traitors"],
+    });
+    expect(r.status).toBe("ready");
+    const doc = rh.store.getState().library.documents[r.docId]!;
+    expect(doc.title).toBe("Byzantine generals, briefly");
+    expect(doc.blocks[0]).toEqual({ type: "heading", level: 1, text: "Generals" });
+    expect((doc.blocks[1] as { text: string }).text).toContain("[[traitors]]");
+    expect(rh.store.getState().agent.stats.queued).toBe(0);
+    expect(rh.store.getState().session.docId).toBe(r.docId);
+  });
+
+  test("get_protocol returns the loop and every event type", async () => {
+    const text = await ctx.tools.get("rabbithole_get_protocol")!.execute({});
+    for (const t of ["rabbithole_get_reader", "rabbithole_update_reader", "rabbithole_await_event", "rabbithole_complete_event", "document.annotate", "concept.explain", "selection.ask", "concept.elaborate", "rabbithole_open"]) {
+      expect(text).toContain(t);
+    }
+    expect(rh.store.getState().agent.prompt).toContain("rabbithole_get_protocol");
+    expect(rh.store.getState().agent.prompt.split("\n").length).toBeLessThanOrEqual(2);
+  });
+
+  test("get_reader / update_reader: the agent brings its own knowledge of the reader", async () => {
+    const before = await ctx.call("rabbithole_get_reader");
+    expect(before.role).toContain("Software engineer");
+    expect(before.preferences).toContain("code analogies");
+    expect(before.notes.length).toBe(2);
+
+    await ctx.call("rabbithole_update_reader", {
+      role: "Oncology nurse",
+      preferences: ["clinical examples", "concrete first"],
+      instructions: "Skip basic biology.",
+      goal: "pass the exam",
+      notes: ["knows linear algebra", "knows linear algebra", " "],
+    });
     const s = rh.store.getState();
+    expect(s.profile.role).toBe("Oncology nurse");
+    expect(s.profile.prefs["code analogies"]).toBe(false);
+    expect(s.profile.prefs["clinical examples"]).toBe(true);
+    expect(s.profile.prefs["concrete first"]).toBe(true);
+    expect(s.profile.notes).toBe("Skip basic biology.");
     expect(s.profile.goal).toBe("pass the exam");
-    expect(s.notes.map((x) => x.text)).toContain("knows linear algebra");
     expect(s.notes.filter((x) => x.text === "knows linear algebra")).toHaveLength(1);
-    expect(rh.reader.readerContext().profile).toContain("pass the exam");
-    expect(s.agent.log.some((l) => l.name === "rabbithole_remember")).toBe(true);
+    const ctxLine = rh.reader.readerContext().profile;
+    expect(ctxLine).toContain("Oncology nurse");
+    expect(ctxLine).toContain("pass the exam");
+    expect(s.agent.log.some((l) => l.name === "rabbithole_update_reader")).toBe(true);
+
+    // partial update keeps everything else
+    await ctx.call("rabbithole_update_reader", { goal: "" });
+    expect(rh.store.getState().profile.goal).toBe("");
+    expect(rh.store.getState().profile.role).toBe("Oncology nurse");
   });
 
   test("selection.ask creates a quoted pane next to its source", async () => {
@@ -248,4 +299,40 @@ describe("shared trails", () => {
     other.reader.stopTour();
     expect(other.store.getState().session.say).toBeNull();
   }, 15000);
+});
+
+describe("link watchdog", () => {
+  test("idle → polling while await_event is called → disconnected when polling stops", async () => {
+    let t = 0;
+    const c = fakeContext();
+    const r = createRabbithole({ dbName: `test-wd-${++n}`, duplexStorage: null, modelContext: () => c.mc });
+    await r.ready;
+    const agent = r.agent as unknown as { now: () => number; disconnectAfterMs: number };
+    // swap the clock after boot; refreshLink() reads it on every call
+    Object.defineProperty(agent, "now", { value: () => t });
+    expect(r.store.getState().agent.link).toBe("idle");
+
+    const poll = c.call("rabbithole_await_event"); // long-poll in flight (12s)
+    await new Promise((s) => setTimeout(s, 5));
+    r.agent.refreshLink();
+    expect(r.store.getState().agent.link).toBe("polling");
+
+    r.reader.setGoal("x"); // not an event; nothing to deliver yet
+    r.reader.open("tx");
+    await new Promise((s) => setTimeout(s, 1400));
+    r.reader.openConcept({ conceptId: "tx:zzz", label: "zzz" }); // delivers an event, ending the poll
+    await poll;
+    r.agent.refreshLink();
+    expect(r.store.getState().agent.link).toBe("polling"); // just returned
+
+    t = agent.disconnectAfterMs + 1;
+    r.agent.refreshLink();
+    expect(r.store.getState().agent.link).toBe("disconnected");
+
+    void c.call("rabbithole_await_event"); // it came back
+    await new Promise((s) => setTimeout(s, 5));
+    r.agent.refreshLink();
+    expect(r.store.getState().agent.link).toBe("polling");
+    r.dispose();
+  });
 });

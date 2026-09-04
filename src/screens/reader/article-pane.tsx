@@ -1,4 +1,6 @@
-import type { Document } from "@/sdk";
+import { StatusDot } from "@/components/icons";
+import { useStore } from "@/hooks";
+import { annotationPending, type Document } from "@/sdk";
 import { Blocks } from "./blocks";
 import { PANE_W, type PaneGeometry } from "./use-sliding-panes";
 
@@ -23,8 +25,28 @@ export function ArticlePane({
       <div data-pane={-1} className="box-border h-full min-w-0 flex-1 overflow-auto px-12 py-10">
         <div className="font-mono text-[10.5px] text-faint">{doc.meta}</div>
         <h1 className="mt-3 mb-6 font-serif text-[31px] font-medium text-ink">{doc.title}</h1>
+        <MarkingStatus doc={doc} />
         <Blocks blocks={doc.blocks} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * While the agent decides which words to highlight the text is already readable;
+ * this line says what is happening (and what to do if no agent is linked).
+ */
+function MarkingStatus({ doc }: { doc: Document }) {
+  const pending = useStore((s) => annotationPending(s, doc.id));
+  const link = useStore((s) => (s.agent.mock ? "polling" : s.agent.link));
+  if (!pending || doc.annotated) return null;
+  const waiting = link !== "polling";
+  return (
+    <div className="-mt-3 mb-5 flex items-center gap-2 font-mono text-[10.5px] text-muted">
+      <StatusDot breathe={!waiting} tone={waiting ? "idle" : "accent"} size={6} />
+      <span className={waiting ? "" : "animate-pulse-soft"}>
+        {waiting ? "no agent polling yet — terms get highlighted once one joins (see the agent pill)" : "finding words beyond your top-2000…"}
+      </span>
     </div>
   );
 }

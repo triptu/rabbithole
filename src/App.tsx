@@ -5,6 +5,7 @@
  *   /read/:docId   Reader     the sliding panes
  *   /history       History    pages and concepts you've decoded
  *   /profile       Profile    the agent's picture of you
+ *   /about         About      what this is and how the agent link works
  */
 import { useEffect, useRef } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
@@ -17,6 +18,7 @@ import { History } from "@/screens/history";
 import { Home } from "@/screens/home";
 import { Profile } from "@/screens/profile";
 import { Reader } from "@/screens/reader/reader";
+import { About } from "@/screens/about";
 
 export function App() {
   return (
@@ -38,12 +40,13 @@ function Shell() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <TopBar agentOpen={agentOpen} onToggleAgent={() => reader.setDrawerOpen(!agentOpen)} />
+      <TopBar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/read/:docId" element={<Reader agentOpen={agentOpen} />} />
         <Route path="/history" element={<History />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/about" element={<About />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {agentOpen && <AgentDrawer onClose={() => reader.setDrawerOpen(false)} />}
