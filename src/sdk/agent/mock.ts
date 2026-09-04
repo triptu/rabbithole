@@ -6,7 +6,7 @@
  * store → UI) is exercised without a model. Answers are obviously synthetic.
  */
 import type { Agent } from "./agent";
-import type { AgentEventType, AnalyzeResult, ElaborateResult, PayloadFor, ShortResult } from "./events";
+import type { AgentEventType, AnnotateResult, ElaborateResult, PayloadFor, ShortResult } from "./events";
 
 export interface MockOptions {
   /** how long the "model" takes per event */
@@ -25,21 +25,14 @@ const sleep = (ms: number, signal?: AbortSignal) =>
     });
   });
 
-export function mockAnswer(type: AgentEventType, payload: unknown): AnalyzeResult | ShortResult | ElaborateResult {
+export function mockAnswer(type: AgentEventType, payload: unknown): AnnotateResult | ShortResult | ElaborateResult {
   switch (type) {
-    case "document.analyze": {
-      const p = payload as PayloadFor<"document.analyze">;
-      const source = p.url ?? "pasted text";
-      const words = (p.text || "The source had no text the mock could read.")
-        .replace(/\s+/g, " ")
-        .split(" ")
-        .slice(0, 160);
-      const chunk = Math.max(1, Math.ceil(words.length / 3));
-      const paragraphs = [0, 1, 2]
-        .map((i) => words.slice(i * chunk, (i + 1) * chunk).join(" "))
-        .filter(Boolean)
-        .map((t, i) => (i === 0 ? `${t} This is a [[mock summary]] written by the [[dev mock agent]].` : t));
-      return { title: `Mock reading of ${source}`.slice(0, 80), meta: `mock agent · ${source}`, paragraphs };
+    case "document.annotate": {
+      // the mock has no idea what is hard: it picks the longest distinct words
+      const p = payload as PayloadFor<"document.annotate">;
+      const words = [...new Set(p.text.match(/[A-Za-z][A-Za-z-]{7,}/g) ?? [])];
+      words.sort((a, b) => b.length - a.length);
+      return { terms: words.slice(0, 6), ...(p.title ? {} : { title: "Mock title" }) };
     }
     case "concept.explain": {
       const p = payload as PayloadFor<"concept.explain">;

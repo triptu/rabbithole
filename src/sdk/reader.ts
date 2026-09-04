@@ -11,9 +11,10 @@
  */
 import type { Agent } from "./agent/agent";
 import type { ReaderContext } from "./agent/events";
-import { parseAnalyzeResult, parseElaborateResult, parseShortResult } from "./agent/events";
+import { parseAnnotateResult, parseElaborateResult, parseShortResult } from "./agent/events";
 import { displayUrl, domainOf, fetchUrlMarkdown, looksLikeUrl, normalizeUrl } from "./content/fetch";
-import { countMarkers, phraseLabel, scopedId, slug, strip } from "./content/markers";
+import { countMarkers, markTerms, phraseLabel, scopedId, slug, strip } from "./content/markers";
+import { parseSource, sourceText } from "./content/source";
 import { newId, profileText, type Mutators, type Store } from "./store";
 import type { Block, Concept, Document, Pane, Profile, Selection } from "./types";
 
@@ -37,6 +38,7 @@ export type Reader = ReturnType<typeof createReader>;
 export function blockText(block: Block, labelFor?: (id: string) => string | undefined): string {
   switch (block.type) {
     case "paragraph":
+    case "heading":
     case "note":
     case "hint":
       return strip(block.text, labelFor);
@@ -114,8 +116,9 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
 
   /**
    * The home page's "make it readable": a url, pasted text, or a demo shortcut.
-   * Returns the document id the UI should navigate to (the document may still be
-   * loading), or null when nothing was submitted.
+   * The text is shown verbatim as soon as it is available; the agent is then asked
+   * which terms to highlight (document.annotate). Returns the document id the UI
+   * should navigate to, or null when nothing was submitted / the fetch failed.
    */
   async function openInput(raw: string): Promise<string | null> {
     const value = raw.trim();
@@ -125,33 +128,91 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
       open(demo);
       return demo;
     }
+    if (!looksLikeUrl(value)) return openText({ text: value });
 
-    const isUrl = looksLikeUrl(value);
-    const url = isUrl ? normalizeUrl(value) : null;
+    const url = normalizeUrl(value);
     const docId = newId("d");
-    const startedAt = Date.now();
-
     clearTimers();
     m.setSession({ docId, panes: [], selection: null, reveal: null });
-    m.setLoading({ docId, step: 0, live: true, startedAt });
-
-    let text = isUrl ? "" : value;
-    if (url) {
-      try {
-        text = await fetchText(url);
-      } catch {
-        // the agent can fetch it itself; payload.text stays empty
+    m.setLoading({ docId, step: 0, live: true, startedAt: Date.now() });
+    try {
+      const fetched = await fetchText(url);
+      if (get().session.loading?.docId !== docId) return docId; // the reader moved on
+      const parsed = parseSource(fetched);
+      if (!parsed.blocks.length) throw new Error("the page had no readable text");
+      createDocument({ id: docId, title: parsed.title ?? displayUrl(url), url, blocks: parsed.blocks, source: "url" });
+      m.setLoading(null);
+      return docId;
+    } catch (e) {
+      if (get().session.loading?.docId === docId) {
+        m.setSession({ docId: null, loading: null });
+        toast(`Couldn’t fetch that page: ${(e as Error).message}`);
       }
+      return null;
     }
-    // the reader moved on while we were fetching
-    if (get().session.loading?.docId !== docId) return docId;
+  }
 
-    const requestId = agent.queue({
-      type: "document.analyze",
-      payload: { docId, url, text, reader: readerContext() },
-    });
-    m.setLoading({ docId, step: 1, live: true, startedAt, requestId });
+  /**
+   * Open text as a document: pasted by the reader, or written by the agent
+   * (`rabbithole_open`). With `terms` the highlights are placed at once; without,
+   * the agent is asked.
+   */
+  function openText(args: { text: string; title?: string; terms?: string[] }): string | null {
+    const parsed = parseSource(args.text);
+    if (!parsed.blocks.length) return null;
+    const docId = newId("d");
+    const title = args.title?.trim() || parsed.title || firstLine(parsed.blocks) || "Pasted text";
+    clearTimers();
+    m.setSession({ docId, panes: [], selection: null, reveal: null, loading: null });
+    createDocument({ id: docId, title, url: null, blocks: parsed.blocks, source: "text", terms: args.terms });
     return docId;
+  }
+
+  const firstLine = (blocks: Block[]) => {
+    const b = blocks.find((x) => x.type === "heading" || x.type === "paragraph");
+    return b && "text" in b ? phraseLabel(b.text, 80) : "";
+  };
+
+  /** persist a new verbatim document and ask the agent for its terms unless they came along */
+  function createDocument(d: { id: string; title: string; url: string | null; blocks: Block[]; source: "url" | "text"; terms?: string[] }) {
+    const now = Date.now();
+    const domain = d.url ? domainOf(d.url) : "pasted text";
+    let doc: Document = {
+      id: d.id,
+      title: d.title,
+      url: d.url ? displayUrl(d.url) : "pasted text",
+      domain,
+      meta: d.url ? domain : "pasted text",
+      source: d.source,
+      blocks: d.blocks,
+      termCount: 0,
+      createdAt: now,
+      openedAt: now,
+      bookmarked: false,
+    };
+    if (d.terms) doc = { ...applyTerms(doc, d.terms), annotated: true };
+    m.putDocument(doc);
+    if (!d.terms) requestTerms(doc);
+  }
+
+  /** ask the agent which words in this document the reader will stumble on */
+  function requestTerms(doc: Document) {
+    agent.queue({
+      type: "document.annotate",
+      payload: { docId: doc.id, title: doc.title, text: sourceText(doc.blocks), reader: readerContext() },
+    });
+  }
+
+  /** mark the first occurrence of each term across the document's text blocks */
+  function applyTerms(doc: Document, terms: string[]): Document {
+    let remaining = terms;
+    const blocks = doc.blocks.map((b): Block => {
+      if (!remaining.length || (b.type !== "paragraph" && b.type !== "heading" && b.type !== "note")) return b;
+      const { text, placed } = markTerms(b.text, remaining);
+      remaining = remaining.filter((t) => !placed.includes(t));
+      return { ...b, text };
+    });
+    return { ...doc, blocks, termCount: blocks.reduce((n, b) => n + ("text" in b ? countMarkers(b.text) : 0), 0) };
   }
 
   /** Open a document that exists in the library. */
@@ -583,27 +644,13 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
     if (attempt >= ERROR_AFTER_ATTEMPTS) m.patchPane(conceptId, { status: "error", error });
   };
 
-  agent.on("document.analyze", ({ event, result }) => {
+  agent.on("document.annotate", ({ event, result }) => {
     const p = event.payload;
-    const r = parseAnalyzeResult(result);
-    const url = p.url ? displayUrl(p.url) : "pasted text";
-    const domain = p.url ? domainOf(p.url) : "pasted text";
-    const now = Date.now();
-    const prev = get().library.documents[p.docId];
-    m.putDocument({
-      id: p.docId,
-      title: r.title,
-      url,
-      domain,
-      meta: r.meta || domain,
-      source: p.url ? "url" : "text",
-      blocks: r.paragraphs.map((text) => ({ type: "paragraph", text })),
-      termCount: countMarkers(r.paragraphs.join(" ")),
-      createdAt: prev?.createdAt ?? now,
-      openedAt: now,
-      bookmarked: prev?.bookmarked ?? false,
-    });
-    if (get().session.loading?.docId === p.docId) m.setLoading(null);
+    const r = parseAnnotateResult(result);
+    const doc = get().library.documents[p.docId];
+    if (!doc) return; // the reader deleted it meanwhile; nothing to mark
+    const titled = r.title && (doc.source === "text" || !doc.title) ? { ...doc, title: r.title } : doc;
+    m.putDocument({ ...applyTerms(titled, r.terms), annotated: true });
   });
 
   agent.on("concept.explain", ({ event, result }) => {
@@ -663,6 +710,7 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
   return {
     // documents
     openInput,
+    openText,
     open,
     close,
     guessDemo,

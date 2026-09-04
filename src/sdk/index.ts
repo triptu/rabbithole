@@ -52,7 +52,7 @@ export function createRabbithole(opts: RabbitholeOptions = {}): Rabbithole {
     modelContext: opts.modelContext ?? findModelContext,
   });
   const reader = createReader({ store, mutators, agent });
-  const tools = buildTools({ reader, store });
+  const tools = buildTools({ reader, store, protocol: () => agent.protocol });
 
   async function boot() {
     let snap = EMPTY;
@@ -108,6 +108,7 @@ export function createRabbithole(opts: RabbitholeOptions = {}): Rabbithole {
     dispose() {
       mockController?.abort();
       reader.dispose();
+      agent.dispose();
     },
   };
 }
@@ -133,7 +134,8 @@ export type { Reader } from "./reader";
 export type { Agent } from "./agent/agent";
 export type { AgentEvent, AgentEventType } from "./agent/events";
 export * from "./types";
-export { currentDocument, profileText, visitedConcepts, visitedDocuments, type RabbitholeState, type Store } from "./store";
+export { annotationPending, currentDocument, profileText, visitedConcepts, visitedDocuments, type RabbitholeState, type Store } from "./store";
 export { blockText, documentText, DEMO_EXPLAIN_MS, DEMO_STEP_MS } from "./reader";
+export { GITHUB_URL } from "./about";
 export { segments, strip, scopedId, slug, type Segment } from "./content/markers";
 export { DEMO_SUGGESTIONS } from "./seed/canned";
