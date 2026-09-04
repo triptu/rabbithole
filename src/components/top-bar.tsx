@@ -120,6 +120,7 @@ const PILL_LABEL: Record<LinkStatus, string> = {
 function AgentPill({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const link = useStore((s) => s.agent.link);
   const mock = useStore((s) => s.agent.mock);
+  const working = useStore((s) => s.agent.stats.inflight > 0);
   const status: LinkStatus = mock ? "polling" : link;
   const [explain, setExplain] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -152,7 +153,7 @@ function AgentPill({ open, onToggle }: { open: boolean; onToggle: () => void }) 
         data-status={status}
         className="flex items-center gap-2 rounded-full border border-line bg-transparent py-[5px] pr-3 pl-[9px] text-[11.5px] font-semibold text-slate hover:border-accent data-[open=true]:bg-panel data-[status=disconnected]:border-rust data-[status=disconnected]:text-rust data-[status=polling]:border-accent"
       >
-        <StatusDot tone={status === "polling" ? "accent" : status === "disconnected" ? "rust" : "idle"} size={7} />
+        <StatusDot tone={status === "polling" ? "accent" : status === "disconnected" ? "rust" : "idle"} size={7} hollow={status === "polling" && working} />
         {mock ? "mock agent" : PILL_LABEL[status]}
       </button>
       {explain && <LinkExplainer onDrawer={() => (setExplain(false), onToggle())} />}

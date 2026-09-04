@@ -83,14 +83,18 @@ export class Agent {
       name: "Rabbithole reader",
       toolPrefix: TOOL_PREFIX,
       waitTimeoutMs,
-      leaseMs: opts.leaseMs ?? 60_000,
+      // long enough for a slow model to annotate a long paper before the event is redelivered
+      leaseMs: opts.leaseMs ?? 120_000,
       storage: opts.storage === undefined ? null : opts.storage,
       storageKey: "rabbithole:duplex:v1",
       agentInstructions: protocol(),
       logger: (name, detail) => this.onChannelLog(name, detail),
     });
 
-    this.channel.subscribe((stats) => this.m.setAgent({ stats }));
+    this.channel.subscribe((stats) => {
+      this.m.setAgent({ stats });
+      this.refreshLink();
+    });
     this.m.setAgent({
       prompt: PASTE_PROMPT,
       reconnectPrompt: RECONNECT_PROMPT,
@@ -204,12 +208,17 @@ export class Agent {
     this.refreshLink();
   }
 
-  /** Derive the link status from polling activity; only writes to the store on change. */
+  /**
+   * Derive the link status; only writes to the store on change. An agent that holds a
+   * leased event is alive even though it cannot poll while it thinks — that is the
+   * "working" case the UI shows with a hollow dot — so silence only counts as a
+   * disconnect when nothing is leased either.
+   */
   refreshLink() {
     const s = this.store.getState().agent;
     let link: LinkStatus;
     if (!s.available) link = "unavailable";
-    else if (this.pollsInFlight > 0) link = "polling";
+    else if (this.pollsInFlight > 0 || s.stats.inflight > 0) link = "polling";
     else if (this.lastPollAt === null) link = "idle";
     else link = this.now() - this.lastPollAt > this.disconnectAfterMs ? "disconnected" : "polling";
     if (link !== s.link) this.m.setAgent({ link });

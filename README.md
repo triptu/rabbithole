@@ -35,6 +35,15 @@ A view with explanation panes open -
 If there are more panes than what can fit on the screen they collapse as vertical columns(left in this pic) -
 ![Going deeper: several panes in the trail](assets/app/example2.png)
 
+You can also highlight any part and ask a question -
+
+![Explain Inline](assets/app/inline-explain.png)
+
+And get back a focused response, ready to be drilled down in more.
+
+![Explain Inline Response](assets/app/inline-explain-response.png)
+
+
 History of all pages you have visited is preserved -
 
 ![History · pages](assets/app/pages-history.png)

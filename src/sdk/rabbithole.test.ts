@@ -336,11 +336,18 @@ describe("link watchdog", () => {
     r.reader.open("tx");
     await new Promise((s) => setTimeout(s, 1400));
     r.reader.openConcept({ conceptId: "tx:zzz", label: "zzz" }); // delivers an event, ending the poll
-    await poll;
+    const delivered = await poll;
     r.agent.refreshLink();
     expect(r.store.getState().agent.link).toBe("polling"); // just returned
 
+    // the agent is thinking: no poll for a long time, but the event is leased → still alive
     t = agent.disconnectAfterMs + 1;
+    r.agent.refreshLink();
+    expect(r.store.getState().agent.stats.inflight).toBe(1);
+    expect(r.store.getState().agent.link).toBe("polling");
+
+    // it answers, then goes quiet with nothing leased → disconnected
+    await c.call("rabbithole_complete_event", { eventId: delivered.event.id, result: { short: "z", links: [] } });
     r.agent.refreshLink();
     expect(r.store.getState().agent.link).toBe("disconnected");
 

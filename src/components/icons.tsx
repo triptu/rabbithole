@@ -24,10 +24,29 @@ export type DotTone = "accent" | "rust" | "idle";
  * A status dot. `breathe` adds the pulse ring the design uses for "work in flight"
  * (loading panes, the drawer); the top-bar pill never breathes.
  */
-export function StatusDot({ tone = "accent", on, size = 8, breathe = false }: { tone?: DotTone; on?: boolean; size?: number; breathe?: boolean }) {
+export function StatusDot({
+  tone = "accent",
+  on,
+  size = 8,
+  breathe = false,
+  hollow = false,
+}: {
+  tone?: DotTone;
+  on?: boolean;
+  size?: number;
+  breathe?: boolean;
+  /** outlined instead of filled — "linked, and busy on something" */
+  hollow?: boolean;
+}) {
   const t: DotTone = on === undefined ? tone : on ? "accent" : "idle";
   const color = t === "accent" ? "bg-accent" : t === "rust" ? "bg-rust" : "bg-line-2";
-  return <span className={`rounded-full ${color} ${breathe && t === "accent" ? "animate-breathe" : ""}`} style={{ width: size, height: size, flex: "none" }} />;
+  const ring = t === "accent" ? "border-accent" : t === "rust" ? "border-rust" : "border-line-2";
+  return (
+    <span
+      className={`box-border rounded-full ${hollow ? `border-[1.5px] bg-transparent ${ring}` : color} ${breathe && t === "accent" ? "animate-breathe" : ""}`}
+      style={{ width: size, height: size, flex: "none" }}
+    />
+  );
 }
 
 export function GithubIcon({ size = 14 }: { size?: number }) {
