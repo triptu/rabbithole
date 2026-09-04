@@ -37,6 +37,17 @@ The design inspiration is https://notes.andymatuschak.org.
 - Personalization - (role, notes, preferences) shapes every explanation
 Reader model the agent writes to — notes on how you like things explained
 - Localstorage is used for all things persistent
+- You can also your agent to just start with whatever text, so your starting point could be an Agent generated article for e.g. if you are trying to understand a new concept, ask it to, "explain <concept> and open the explanation in rabbithole"
+
+
+## What's next
+
+- Support for more types of inputs - PDFs for e.g.
+- More software eng specific coverage - PRs for example.
+- Login and server side storage to carry what you're reading and concepts you're interested in across sessions and AI agents.
+- More proactivity - capture your attention and pass it to the agent. If you're lingering on a paragraph, the agent can proactively offer you help.
+- Suggested actions — "add this to our repo" while reading an engineering blog, or "add this to your slides" if it relates to a presentation you're working on.
+
 
 ## Set up and run
 
