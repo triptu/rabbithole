@@ -5,6 +5,8 @@ Dense documents are hard to read, even in your own field. Research papers, artic
 
 Try at - https://rabbithole.tushar.ai/
 
+![Home](assets/app/home.png)
+
 ## Where RabbitHole fits
 
 ![Where It fits](assets/where-it-fits.png)
@@ -41,6 +43,18 @@ Reader model the agent writes to — notes on how you like things explained
 - Everything persistent lives in the browser (IndexedDB via Dexie), so a sync engine can be added later without touching the UI
 - You can also your agent to just start with whatever text, so your starting point could be an Agent generated article for e.g. if you are trying to understand a new concept, ask it to, "explain <concept> and open the explanation in rabbithole"
 
+
+## App screenshots
+
+![Reading a paper, with a concept pane open](assets/app/example1.png)
+
+![Going deeper: several panes in the trail](assets/app/example2.png)
+
+![History · pages](assets/app/pages-history.png)
+
+![History · concepts](assets/app/concept-history.png)
+
+![Profile · the agent's picture of you](assets/app/profile.png)
 
 ## What's next
 
