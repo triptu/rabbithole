@@ -1,6 +1,6 @@
 /**
  * Types for duplex-mcp-sdk.js — the at-least-once page ↔ agent event channel from
- * webmcp-duplex-prototype. The .js is copied verbatim; only these typings are ours.
+ * the duplex WebMCP prototype. The .js is kept verbatim; only these typings are ours.
  */
 
 export interface DuplexEvent<P = unknown> {

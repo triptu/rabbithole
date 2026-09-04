@@ -1,7 +1,7 @@
 /**
  * Demo content: the documents and concepts the app ships with so it reads well
  * before any agent is connected. Migrated verbatim from the design prototype
- * (`ai-export/rabbithole-data.js` + the article bodies in `rabbithole.html`).
+ * (its data file and the article bodies of its template).
  *
  * `daysAgo` is relative — the seeder turns it into real timestamps so history
  * labels ("today", "yesterday", …) stay meaningful.

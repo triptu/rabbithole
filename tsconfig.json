@@ -32,5 +32,5 @@
     "noPropertyAccessFromIndexSignature": false
   },
 
-  "exclude": ["dist", "node_modules", "ai-export", "webmcp-duplex-prototype"]
+  "exclude": ["dist", "node_modules"]
 }

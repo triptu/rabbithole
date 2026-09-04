@@ -26,7 +26,7 @@ function blockTexts(block: Block): string[] {
   }
 }
 
-// original `terms` counts from ai-export/rabbithole-data.js
+// `terms` counts as shown in the original design prototype
 const ORIGINAL_TERM_COUNTS: Record<string, number> = { tx: 6, cr: 8, bft: 3, code: 4, pr: 4, lab: 6, tax: 5 };
 
 describe("demo seed", () => {
