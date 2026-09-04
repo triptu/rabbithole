@@ -34,7 +34,7 @@ export function Profile() {
           <h1 className="m-0 font-serif text-[28px] font-medium text-ink">The agent's picture of you</h1>
           <p className="mt-2 mb-0 text-[13px] leading-[1.6] text-muted [text-wrap:pretty]">
             Everything here shapes every explanation. Your agent reads it before it answers anything, and fills it in from what it already
-            knows about you — that is the first step of its protocol. You can edit it too.
+            knows about you. You can edit it too.
           </p>
         </div>
 
