@@ -36,8 +36,10 @@ describe("boot", () => {
     const s = rh.store.getState();
     expect(s.booted).toBe(true);
     expect(Object.keys(s.library.documents).length).toBe(7);
-    expect(s.library.concepts.selfattention?.bookmarked).toBe(true);
-    expect(s.profile.role).toContain("Software engineer");
+    expect(s.library.concepts.selfattention?.bookmarked).toBe(false);
+    expect(Object.values(s.library.documents).every((d) => d.openedAt === undefined)).toBe(true);
+    expect(s.profile.role).toBe("");
+    expect(s.notes).toEqual([]);
     expect(s.agent.connected).toBe(true);
     expect([...ctx.tools.keys()]).toEqual([
       "rabbithole_await_event",
@@ -127,7 +129,7 @@ describe("duplex with the agent", () => {
     expect(delivered.status).toBe("event");
     expect(delivered.event.type).toBe("concept.explain");
     expect(delivered.event.payload.term).toBe("encoder");
-    expect(delivered.event.payload.reader.profile).toContain("Software engineer");
+    expect(delivered.event.payload.reader.profile).toContain("A curious reader");
     expect(rh.store.getState().agent.requests[pane.requestId!]?.status).toBe("inflight");
 
     // a bad result is rejected and redelivered with the same id
@@ -229,9 +231,9 @@ describe("duplex with the agent", () => {
 
   test("get_reader / update_reader: the agent brings its own knowledge of the reader", async () => {
     const before = await ctx.call("rabbithole_get_reader");
-    expect(before.role).toContain("Software engineer");
-    expect(before.preferences).toContain("code analogies");
-    expect(before.notes.length).toBe(2);
+    expect(before.role).toBe("");
+    expect(before.preferences).toEqual([]);
+    expect(before.notes.length).toBe(0);
 
     await ctx.call("rabbithole_update_reader", {
       role: "Oncology nurse",

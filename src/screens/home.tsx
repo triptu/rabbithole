@@ -4,13 +4,12 @@ import { GithubIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { dateLabel, useReader, useStore, useStoreShallow } from "@/hooks";
+import { dateLabel, useReader, useStoreShallow } from "@/hooks";
 import { DEMO_SUGGESTIONS, GITHUB_URL, visitedDocuments } from "@/sdk";
 
 export function Home() {
   const reader = useReader();
   const navigate = useNavigate();
-  const goal = useStore((s) => s.profile.goal);
   const [paste, setPaste] = useState("");
   const recents = useStoreShallow((s) => visitedDocuments(s).slice(0, 5));
 
@@ -28,17 +27,20 @@ export function Home() {
           <Link to="/about" className="text-slate underline decoration-dotted underline-offset-[3px] hover:text-accent">
             About
           </Link>{" "}
-          and on <Link to={GITHUB_URL} className="text-slate underline decoration-dotted underline-offset-[3px] hover:text-accent">Github</Link>
+          and on{" "}
+          <a href={GITHUB_URL} target="_blank" rel="noopener" className="text-slate underline decoration-dotted underline-offset-[3px] hover:text-accent">
+            Github
+          </a>
         </p>
 
-        <div className="mb-2.5 flex items-center gap-2">
+        {/*<div className="mb-2.5 flex items-center gap-2">
           <span className="rh-kicker flex-none">GOAL</span>
           <Input
             value={goal}
             onChange={(e) => reader.setGoal(e.target.value)}
             placeholder="why are you reading? e.g. deciding if we should adopt this — shapes every explanation"
           />
-        </div>
+        </div>*/}
         <Input
           onKeyDown={(e) => e.key === "Enter" && submit(e.currentTarget.value)}
           placeholder="https:// — arxiv, wikipedia, anything"
@@ -72,7 +74,7 @@ export function Home() {
           ))}
         </div>
 
-        <div className="rh-kicker mt-9 mb-3 text-[10.5px] tracking-[0.12em]">PICK UP WHERE YOU LEFT OFF</div>
+        {recents.length > 0 && <div className="rh-kicker mt-9 mb-3 text-[10.5px] tracking-[0.12em]">PICK UP WHERE YOU LEFT OFF</div>}
         <div className="flex flex-col gap-2">
           {recents.map((r) => (
             <div

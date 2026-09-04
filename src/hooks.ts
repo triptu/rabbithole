@@ -56,11 +56,6 @@ export function dateLabel(at: number, now = Date.now()): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** avatar letter from the profile role */
-export function initial(role: string): string {
-  return (role.trim()[0] ?? "?").toUpperCase();
-}
-
 export function clockLabel(at: number): string {
   return new Date(at).toTimeString().slice(0, 8);
 }

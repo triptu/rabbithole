@@ -104,7 +104,11 @@ export function History() {
           </div>
         )}
         {(tab === "pages" ? pageRows : conceptRows).length === 0 && (
-          <div className="py-12 text-center text-[13px] text-faint">nothing matches — clear the filter or the bookmark toggle</div>
+          <div className="py-12 text-center text-[13px] leading-[1.7] text-faint">
+            {(tab === "pages" ? pages : decoded).length === 0
+              ? "nothing here yet — pages you read and terms you open show up here"
+              : "nothing matches — clear the filter or the bookmark toggle"}
+          </div>
         )}
       </div>
     </div>

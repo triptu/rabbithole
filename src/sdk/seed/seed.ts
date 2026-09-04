@@ -14,14 +14,12 @@ export interface SeedData {
 }
 
 /**
- * What the demo reader has already visited, most recent first — the prototype's history
- * lists. Anything not listed exists in the library but has never been opened.
+ * Nothing starts out visited or bookmarked: history and "pick up where you left off"
+ * fill in as the reader actually uses the app. The demo pages exist in the library
+ * (reachable from the suggestions) but carry no history of their own.
  */
-const PAGE_ORDER = ["lab", "pr", "bft", "code", "tx", "cr"];
-const CONCEPT_ORDER = [
-  "hba1c", "egfr", "tinylfu", "countminsketch", "quorum", "consensus", "byzantine", "harmonicmean",
-  "positional", "multihead", "softmax", "selfattention", "offtarget", "guiderna", "cas9", "endonuclease", "crispr",
-];
+const PAGE_ORDER: string[] = [];
+const CONCEPT_ORDER: string[] = [];
 
 export function buildSeed(now = Date.now()): SeedData {
   // same day → keep the listed order by spacing items a minute apart
@@ -32,21 +30,22 @@ export function buildSeed(now = Date.now()): SeedData {
     return i === -1 ? undefined : stamp(daysAgo, i);
   };
 
-  const documents = Object.values(DEMO_PAGES).map(({ daysAgo, bookmarked, ...page }): Document => ({
+  // `bookmarked` from the canned data is deliberately ignored: nothing starts bookmarked
+  const documents = Object.values(DEMO_PAGES).map(({ daysAgo, bookmarked: _b, ...page }): Document => ({
     ...page,
     source: "demo",
     createdAt: stamp(daysAgo, 0),
     openedAt: visited(PAGE_ORDER, page.id, daysAgo),
-    bookmarked: bookmarked ?? false,
+    bookmarked: false,
   }));
 
-  const concepts = Object.entries(DEMO_CONCEPTS).map(([id, { daysAgo, bookmarked, ...c }]): Concept => ({
+  const concepts = Object.entries(DEMO_CONCEPTS).map(([id, { daysAgo, bookmarked: _b, ...c }]): Concept => ({
     id,
     ...c,
     source: "demo",
     createdAt: stamp(daysAgo, 0),
     openedAt: visited(CONCEPT_ORDER, id, daysAgo),
-    bookmarked: bookmarked ?? false,
+    bookmarked: false,
   }));
 
   const notes = DEMO_NOTES.map((n, i) => ({ id: `seed-note-${i}`, ...n, createdAt: now - (DEMO_NOTES.length - i) }));

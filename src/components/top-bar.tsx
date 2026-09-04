@@ -13,7 +13,6 @@ export function TopBar() {
   const doc = useStore(currentDocument);
   const drawerOpen = useStore((s) => s.session.drawerOpen);
   const onReader = pathname.startsWith("/read/");
-  const onHome = pathname === "/";
   const onHistory = pathname === "/history";
   const onAbout = pathname === "/about";
   const onProfile = pathname === "/profile";
@@ -43,7 +42,7 @@ export function TopBar() {
           <button onClick={() => reader.toggleDocumentBookmark(doc.id)} title="Bookmark this page" className="flex border-none bg-transparent p-1">
             <BookmarkIcon on={doc.bookmarked} size={15} />
           </button>
-          <button
+          {/*<button
             onClick={share}
             title="Share this rabbit hole — whoever opens it gets the same trail, explained in their language"
             className="flex border-none bg-transparent p-1 text-faint hover:text-accent"
@@ -53,7 +52,7 @@ export function TopBar() {
               <path d="M8.5 15.5l-2 2a3.5 3.5 0 01-5-5l2-2" />
               <path d="M15.5 8.5l2-2a3.5 3.5 0 015 5l-2 2" />
             </svg>
-          </button>
+          </button>*/}
           <GoalChip />
         </div>
       )}
@@ -61,11 +60,9 @@ export function TopBar() {
       <div className="flex-1" />
 
       <AgentPill open={drawerOpen} onToggle={() => reader.setDrawerOpen(!drawerOpen)} />
-      {(onHome || onAbout) && (
-        <Button variant="nav" size="nav" on={onAbout} onClick={() => navigate("/about")}>
-          About
-        </Button>
-      )}
+      <Button variant="nav" size="nav" on={onAbout} onClick={() => navigate("/about")}>
+        About
+      </Button>
       <Button variant="nav" size="nav" on={onHistory} onClick={() => navigate("/history")}>
         History
       </Button>

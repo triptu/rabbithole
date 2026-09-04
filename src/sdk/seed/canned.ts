@@ -485,13 +485,12 @@ export const DEMO_SUGGESTIONS: { label: string; tag: string; docId?: string; url
 // ---------------------------------------------------------------- profile
 
 /** Starting reader-model notes ("learned from your sessions"). */
-export const DEMO_NOTES: { text: string; source: string }[] = [
-  { text: "you like an analogy before the formal definition", source: "agent" },
-  { text: "you elaborate ML terms, skim the biology ones", source: "agent" },
-];
+/** the reader model starts empty; the agent fills it while following the protocol */
+export const DEMO_NOTES: { text: string; source: string }[] = [];
 
+/** empty on purpose: the agent (or the reader) fills it in. The chips are the styles offered. */
 export const DEMO_PROFILE: { role: string; notes: string; prefs: Record<string, boolean> } = {
-  role: "Software engineer — distributed systems, TypeScript",
-  notes: "Compare biology things to distributed systems when you can. Keep the first pass under three sentences.",
-  prefs: { "code analogies": true, "systems metaphors": true, "concrete first": true, "visual sketches": false },
+  role: "",
+  notes: "",
+  prefs: { "code analogies": false, "systems metaphors": false, "concrete first": false, "visual sketches": false },
 };
