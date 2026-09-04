@@ -22,7 +22,19 @@ I read a lot - articles, papers, code, engineering spec, wiki pages and so much 
 
 I'm also trying to imagine a future where web feels more collaborative, where you and your agent do things together, like partners. As agents become more personal, I don't just want them to be doing things *for* me on some remote cloud machine. I want them to be ambiently present *with* me, across every surface.
 
-The design inspiration is https://notes.andymatuschak.org.
+## App screenshots
+
+![App in Codex · Asking in Codex to help explain sth](assets/app/codex-app.png)
+
+![Reading a paper, with a concept pane open](assets/app/example1.png)
+
+![Going deeper: several panes in the trail](assets/app/example2.png)
+
+![History · pages](assets/app/pages-history.png)
+
+![History · concepts](assets/app/concept-history.png)
+
+![Profile · the agent's picture of you](assets/app/profile.png)
 
 ## What it does
 
@@ -42,18 +54,6 @@ Reader model the agent writes to — notes on how you like things explained
 - Everything persistent lives in the browser (IndexedDB via Dexie), so a sync engine can be added later without touching the UI
 - You can also your agent to just start with whatever text, so your starting point could be an Agent generated article for e.g. if you are trying to understand a new concept, ask it to, "explain <concept> and open the explanation in rabbithole"
 
-
-## App screenshots
-
-![Reading a paper, with a concept pane open](assets/app/example1.png)
-
-![Going deeper: several panes in the trail](assets/app/example2.png)
-
-![History · pages](assets/app/pages-history.png)
-
-![History · concepts](assets/app/concept-history.png)
-
-![Profile · the agent's picture of you](assets/app/profile.png)
 
 ## What's next
 
@@ -76,3 +76,8 @@ bun run build      # production bundle → dist/ (what Vercel deploys; vercel.js
 ```
 
 Without a WebMCP browser, open the agent drawer (the "agent" pill) and run the mock agent: it answers events through the same duplex tools a real agent would use, so every flow can be exercised locally. "Watch the agent read with me" on the home page is a scripted walkthrough of what a linked agent does.
+
+## References
+
+- Design inspiration - https://notes.andymatuschak.org.
+- WebMCP - https://developer.chrome.com/docs/ai/webmcp
