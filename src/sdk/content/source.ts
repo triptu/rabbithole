@@ -15,8 +15,8 @@ export interface ParsedSource {
   blocks: Block[];
 }
 
-/** Jina Reader prefixes its markdown with a small header block. */
-const JINA_HEADER = /^Title:\s*(.+?)\n(?:\n?URL Source:\s*.+?\n)?(?:\n?Published Time:\s*.+?\n)?\n?Markdown Content:\n/s;
+/** Jina Reader prefixes its markdown with `Key: value` lines (Title, URL Source, Warning, …). */
+const JINA_HEADER = /^Title:\s*(.+?)\n(?:[A-Z][\w ]*:[^\n]*\n|\n)*?Markdown Content:\n/;
 
 export function parseSource(raw: string): ParsedSource {
   let text = raw.replace(/\r\n?/g, "\n").trim();

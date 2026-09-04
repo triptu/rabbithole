@@ -12,7 +12,7 @@
 import type { Agent } from "./agent/agent";
 import type { ReaderContext } from "./agent/events";
 import { parseAnnotateResult, parseElaborateResult, parseShortResult } from "./agent/events";
-import { displayUrl, domainOf, fetchUrlMarkdown, looksLikeUrl, normalizeUrl } from "./content/fetch";
+import { displayUrl, domainOf, fetchReadable, looksLikeUrl, normalizeUrl, type Readable } from "./content/fetch";
 import { countMarkers, markTerms, phraseLabel, scopedId, slug, strip } from "./content/markers";
 import { parseSource, sourceText } from "./content/source";
 import { newId, profileText, type Mutators, type Store } from "./store";
@@ -29,7 +29,7 @@ export interface ReaderDeps {
   mutators: Mutators;
   agent: Agent;
   /** injectable for tests */
-  fetchText?: (url: string) => Promise<string>;
+  fetchText?: (url: string) => Promise<Readable>;
 }
 
 export type Reader = ReturnType<typeof createReader>;
@@ -66,7 +66,7 @@ export function guessDemo(input: string): string | null {
   return null;
 }
 
-export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMarkdown }: ReaderDeps) {
+export function createReader({ store, mutators: m, agent, fetchText = fetchReadable }: ReaderDeps) {
   const get = store.getState;
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const after = (ms: number, fn: () => void) => {
@@ -138,15 +138,15 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchUrlMa
     try {
       const fetched = await fetchText(url);
       if (get().session.loading?.docId !== docId) return docId; // the reader moved on
-      const parsed = parseSource(fetched);
-      if (!parsed.blocks.length) throw new Error("the page had no readable text");
+      const parsed = parseSource(fetched.text);
+      if (!parsed.blocks.length) throw new Error("the page came back without readable text");
       createDocument({ id: docId, title: parsed.title ?? displayUrl(url), url, blocks: parsed.blocks, source: "url" });
       m.setLoading(null);
       return docId;
     } catch (e) {
       if (get().session.loading?.docId === docId) {
         m.setSession({ docId: null, loading: null });
-        toast(`Couldn’t fetch that page: ${(e as Error).message}`);
+        toast(`Couldn’t read that page (${(e as Error).message}). Paste the text instead, or ask your agent to open it.`);
       }
       return null;
     }
