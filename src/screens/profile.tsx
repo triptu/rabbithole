@@ -25,7 +25,7 @@ export function Profile() {
   };
 
   const field =
-    "box-border w-full rounded-lg border border-transparent bg-bg px-3 py-[9px] text-[13px] text-ink focus:border-accent focus:bg-paper";
+    "box-border w-full rounded-lg border border-transparent bg-bg px-3 py-[9px] text-[13px] text-ink placeholder:text-line-2 focus:border-accent focus:bg-paper";
 
   return (
     <div className="flex-1 overflow-auto px-6 py-10">
@@ -77,7 +77,7 @@ export function Profile() {
             ))}
           </div>
           <div className="mt-2.5 flex items-center justify-between text-[10.5px] text-dark-muted">
-            <span>written by your agent (rabbithole_update_reader)</span>
+            <span>written by your agent</span>
             {notes.length > 0 && (
               <button onClick={() => reader.clearNotes()} className="border-none bg-transparent text-[10.5px] text-dark-muted underline decoration-dotted underline-offset-2 hover:text-accent-light">
                 clear
