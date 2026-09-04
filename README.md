@@ -3,6 +3,8 @@
 
 Dense documents are hard to read, even in your own field. Research papers, articles, lab results, tax forms, unfamiliar code. Rabbithole lets you zoom in on the parts you don't understand and the explaining is done by your personal assistant aware about your context.
 
+Try at - https://rabbithole.tushar.ai/
+
 ## Where RabbitHole fits
 
 ![Where It fits](assets/where-it-fits.png)
