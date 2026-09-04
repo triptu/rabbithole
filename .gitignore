@@ -4,3 +4,9 @@ devpost.md
 node_modules
 build
 dist
+
+# local screenshots / browser tooling
+.playwright-mcp
+*.png
+!assets/**/*.png
+!src/public/*.png

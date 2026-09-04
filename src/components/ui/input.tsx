@@ -1,16 +1,14 @@
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+/** White field with a hairline that turns accent on focus. */
+export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return (
     <input
-      type={type}
       data-slot="input"
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        "box-border w-full rounded-[10px] border border-line bg-paper px-3.5 py-[9px] text-[12.5px] text-ink placeholder:text-faint focus:border-accent",
         className,
       )}
       {...props}
@@ -18,4 +16,13 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   );
 }
 
-export { Input };
+/** Borderless field for pill-shaped composers (focus on…, follow-ups, explain…). */
+export function BareInput({ className, ...props }: React.ComponentProps<"input">) {
+  return (
+    <input
+      data-slot="bare-input"
+      className={cn("min-w-0 flex-1 border-none bg-transparent py-1.5 text-[12px] text-ink placeholder:text-faint", className)}
+      {...props}
+    />
+  );
+}

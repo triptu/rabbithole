@@ -1,120 +1,200 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Rabbithole theme. Every color and motion the design export used, named once.
+ * Use them as Tailwind utilities: text-ink, bg-paper, border-line, animate-fade-up …
+ */
+@theme {
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-mono: ui-monospace, Menlo, monospace;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
+  /* text */
+  --color-ink: #171a26;
+  --color-ink-2: #262a38;
+  --color-ink-3: #333849;
+  --color-slate: #565d73;
+  --color-muted: #7b8093;
+  --color-faint: #9aa0b2;
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* lines and surfaces */
+  --color-line: #e4e6ec;
+  --color-line-2: #c9cfdf;
+  --color-line-3: #d3d8e4;
+  --color-bg: #f6f7fa;
+  --color-panel: #eff1f6;
+  --color-paper: #ffffff;
+  --color-paper-2: #fbfbfd;
+  --color-shimmer-a: #eef0f5;
+  --color-shimmer-b: #f8f9fc;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* accent */
+  --color-accent: #2742d6;
+  --color-accent-soft: #e8eeff;
+  --color-accent-line: #c9d3ff;
+  --color-accent-dot: #9faee8;
+  --color-accent-light: #8fa0ff;
+  --color-selection: #d6dfff;
+
+  /* on dark cards */
+  --color-dark-text: #d5daee;
+  --color-dark-muted: #6b7390;
+
+  /* signals */
+  --color-rust: #b04a28;
+  --color-danger: #8a3b32;
+  --color-danger-bg: #fdf1f0;
+  --color-danger-line: #f2cfcb;
+  --color-diff-add: #2e6b3a;
+  --color-diff-add-bg: #edf7ee;
+
+  /* shadcn-style aliases so any generic component inherits the look */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-ink);
+  --color-primary: var(--color-ink);
+  --color-primary-foreground: #ffffff;
+  --color-muted-foreground: var(--color-muted);
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-accent);
+  --color-destructive: var(--color-rust);
+  --radius: 10px;
+
+  /* layout constants shared by the top bar, the agent drawer and the pane strip */
+  --spacing-topbar: 52px;
+  --spacing-pane: 620px;
+  --spacing-spine: 46px;
+  --spacing-drawer: 300px;
+
+  --animate-pane-in: rhPaneIn 0.38s cubic-bezier(0.2, 0.7, 0.3, 1);
+  --animate-shimmer: rhShimmer 1.2s linear infinite;
+  --animate-pulse-soft: rhPulse 1.4s ease infinite;
+  --animate-pulse-fast: rhPulse 1.2s ease infinite;
+  /* the export uses five fade-up durations; name them by duration so uses stay exact */
+  --animate-fade-up-200: rhFadeUp 0.2s ease;
+  --animate-fade-up-250: rhFadeUp 0.25s ease;
+  --animate-fade-up: rhFadeUp 0.3s ease;
+  --animate-fade-up-350: rhFadeUp 0.35s ease;
+  --animate-fade-up-400: rhFadeUp 0.4s ease;
+  --animate-spin-fast: rhSpin 0.7s linear infinite;
+  --animate-pop-fade: rhPopFade 0.16s ease;
+  --animate-slide-left: rhSlideL 0.25s ease;
+  --animate-breathe: rhBreathe 1.6s ease infinite;
+
+  @keyframes rhPaneIn {
+    from { opacity: 0.2; transform: translateX(60px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes rhShimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes rhPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  @keyframes rhFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes rhSpin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes rhPopFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes rhSlideL {
+    from { transform: translateX(40px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes rhBreathe {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(39, 66, 214, 0.45); }
+    70% { box-shadow: 0 0 0 6px rgba(39, 66, 214, 0); }
+  }
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+  /* the design was built on browser defaults, not Tailwind's 1.5 line-height */
+  html,
   body {
-    @apply bg-background text-foreground;
+    margin: 0;
+    height: 100%;
+    line-height: normal;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  #root {
+    height: 100%;
+  }
+  a {
+    color: var(--color-accent);
+  }
+  a:hover {
+    color: var(--color-ink);
+  }
+  input,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+  input:focus,
+  textarea:focus {
+    outline: none;
+  }
+  button {
+    cursor: pointer;
+  }
+  ::selection {
+    background: var(--color-selection);
+    color: var(--color-ink);
+  }
+  ::highlight(rh-sel) {
+    background: var(--color-selection);
+    color: var(--color-ink);
+  }
+  /* inside panes the custom highlight paints the selection, so the native one is hidden */
+  @supports selector(::highlight(rh-sel)) {
+    [data-pane] ::selection {
+      background: transparent;
+      color: inherit;
+    }
+  }
+}
+
+@layer components {
+  /* a clickable jargon term */
+  .rh-term {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--color-accent-dot);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .rh-term:hover {
+    color: var(--color-accent);
+    text-decoration-style: solid;
+    text-decoration-color: var(--color-accent);
+  }
+  /* small monospace section label: TL;DR, EXTERNAL REFERENCES … */
+  .rh-kicker {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--color-faint);
+  }
+  /* white card with the standard hairline */
+  .rh-card {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+  }
+  .rh-shimmer {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--color-shimmer-a) 25%, var(--color-shimmer-b) 50%, var(--color-shimmer-a) 75%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
   }
 }
