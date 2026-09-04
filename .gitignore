@@ -10,3 +10,5 @@ dist
 *.png
 !assets/**/*.png
 !src/public/*.png
+
+.DS_STORE
