@@ -5,6 +5,7 @@
  * travels the other way as events (see events.ts).
  */
 import { strip } from "../content/markers";
+import { normalizeTerms } from "./events";
 import type { Reader } from "../reader";
 import type { Store } from "../store";
 import type { PageTool } from "./agent";
@@ -59,7 +60,13 @@ export function buildTools({ reader, store, protocol }: { reader: Reader; store:
           url: { ...S, description: "a web page to read verbatim" },
           title: { ...S, description: "title for text you provide" },
           text: { ...S, description: "the text to read, verbatim; paragraphs separated by blank lines, markdown headings allowed" },
-          terms: { type: "array", items: S, description: "exact phrases from text to highlight; omit to be asked via document.annotate" },
+          terms: {
+            type: "array",
+            items: {
+              anyOf: [S, { type: "object", properties: { term: S, short: S, links: { type: "array" } }, required: ["term"], additionalProperties: false }],
+            },
+            description: "phrases from text to highlight, each with a 1–2 sentence short so clicks are instant; omit to be asked via document.annotate",
+          },
         },
         additionalProperties: false,
       },
@@ -67,7 +74,7 @@ export function buildTools({ reader, store, protocol }: { reader: Reader; store:
         const url = typeof input.url === "string" ? input.url.trim() : "";
         const text = typeof input.text === "string" ? input.text.trim() : "";
         const title = typeof input.title === "string" ? input.title.trim() : "";
-        const terms = Array.isArray(input.terms) ? input.terms.map(String) : undefined;
+        const terms = Array.isArray(input.terms) ? normalizeTerms(input.terms) : undefined;
         if (!url && !text) return { ok: false, error: "pass url or text" };
         const docId = url ? await reader.openInput(url) : reader.openText({ title, text, terms });
         if (!docId) return { ok: false, error: "nothing to open" };

@@ -11,7 +11,7 @@
  */
 import type { Agent } from "./agent/agent";
 import type { ReaderContext } from "./agent/events";
-import { parseAnnotateResult, parseElaborateResult, parseShortResult } from "./agent/events";
+import { parseAnnotateResult, parseElaborateResult, parseShortResult, type AnnotatedTerm } from "./agent/events";
 import { displayUrl, domainOf, fetchReadable, looksLikeUrl, normalizeUrl, type Readable } from "./content/fetch";
 import { countMarkers, markTerms, phraseLabel, scopedId, slug, strip } from "./content/markers";
 import { parseSource, sourceText } from "./content/source";
@@ -157,7 +157,7 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchReada
    * (`rabbithole_open`). With `terms` the highlights are placed at once; without,
    * the agent is asked.
    */
-  function openText(args: { text: string; title?: string; terms?: string[] }): string | null {
+  function openText(args: { text: string; title?: string; terms?: AnnotatedTerm[] }): string | null {
     const parsed = parseSource(args.text);
     if (!parsed.blocks.length) return null;
     const docId = newId("d");
@@ -179,7 +179,7 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchReada
   }
 
   /** persist a new verbatim document and ask the agent for its terms unless they came along */
-  function createDocument(d: { id: string; title: string; url: string | null; blocks: Block[]; source: "url" | "text"; terms?: string[] }) {
+  function createDocument(d: { id: string; title: string; url: string | null; blocks: Block[]; source: "url" | "text"; terms?: AnnotatedTerm[] }) {
     const now = Date.now();
     const domain = d.url ? domainOf(d.url) : "pasted text";
     let doc: Document = {
@@ -208,15 +208,35 @@ export function createReader({ store, mutators: m, agent, fetchText = fetchReada
     });
   }
 
-  /** mark the first occurrence of each term across the document's text blocks */
-  function applyTerms(doc: Document, terms: string[]): Document {
-    let remaining = terms;
+  /**
+   * Mark the first occurrence of each term across the document's text blocks, and
+   * store the quick definitions that came with them so those panes open instantly.
+   */
+  function applyTerms(doc: Document, terms: AnnotatedTerm[]): Document {
+    let remaining = terms.map((t) => t.term);
     const blocks = doc.blocks.map((b): Block => {
       if (!remaining.length || (b.type !== "paragraph" && b.type !== "heading" && b.type !== "note")) return b;
       const { text, placed } = markTerms(b.text, remaining);
       remaining = remaining.filter((t) => !placed.includes(t));
       return { ...b, text };
     });
+    const now = Date.now();
+    for (const t of terms) {
+      if (!t.short) continue;
+      const id = scopedId(doc.id, t.term);
+      const prev = get().library.concepts[id];
+      if (prev?.short) continue; // the reader already has an explanation for it
+      m.putConcept({
+        id,
+        docId: doc.id,
+        label: prev?.label ?? t.term,
+        short: t.short,
+        links: t.links ?? [],
+        source: "agent",
+        createdAt: prev?.createdAt ?? now,
+        bookmarked: prev?.bookmarked ?? false,
+      });
+    }
     return { ...doc, blocks, termCount: blocks.reduce((n, b) => n + ("text" in b ? countMarkers(b.text) : 0), 0) };
   }
 

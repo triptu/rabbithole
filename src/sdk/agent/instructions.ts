@@ -25,7 +25,7 @@ const FOR_THIS_READER =
   "Write for this specific person: payload.reader has their profile, goal and your notes, and you know more about them than that — use it. Skip what they already know, connect to what they do, never sound like a pamphlet.";
 
 export const EVENT_REMINDERS: Record<string, string> = {
-  "document.annotate": `Reply { "terms": [...] } — 5–12 exact phrases copied from payload.text that THIS reader probably does not know, given their field and what you know about them. Add "title" if the document has none.`,
+  "document.annotate": `Reply { "terms": [{ "term": "exact phrase from payload.text", "short": "1–2 sentences for this reader" }] } — 5–12 terms THIS reader probably does not know, given their field and what you know about them. Include "short" for each so the first click is instant. Add "title" if the document has none.`,
   "concept.explain": `Reply { "short": "2–3 plain sentences", "links": [{ "k": "YT" | "READ" | "WIKI", "t": "title", "q": "search query" }] } (0–3 links). ${FOR_THIS_READER} ${MARKER_RULE}`,
   "selection.ask": `Reply { "short": "answer the question, or explain the phrase, in 2–4 sentences", "links": [...] }. ${FOR_THIS_READER} ${MARKER_RULE}`,
   "concept.elaborate": `Reply { "text": "1–2 tight paragraphs (mechanism, why it matters — or answer the question)", "anec": "one analogy drawn from this reader's world, or null", "html": "self-contained <html> visual ≤230px tall, inline CSS only, or null" }. ${FOR_THIS_READER} ${MARKER_RULE}`,
@@ -43,7 +43,7 @@ Then, the loop
 4. ${T("complete_event")} { eventId, result } — answer each event exactly once, before awaiting the next. Same id again = a retry, not new work; completing twice is safe. "retry" means the result was rejected — fix it and complete again.
 
 Events — each payload carries "reminder" (exact result shape) and "reader" (profile, goal, notes)
-- document.annotate → { "terms": [exact phrases from payload.text this reader likely does not know], "title"? }. The page highlights the first occurrence of each. 5–12; specific jargon over common words; skip what their field already covers.
+- document.annotate → { "terms": [{ "term", "short", "links"? }], "title"? }. term: an exact phrase from payload.text this reader likely does not know; short: 1–2 sentences for them, shown the instant they click. 5–12 terms; specific jargon over common words; skip what their field already covers. A term without "short" costs the reader a round trip (concept.explain) when clicked.
 - concept.explain → { "short", "links" }: the reader clicked a term. 2–3 sentences that assume what they know, connect to what they do, and serve their goal.
 - selection.ask → { "short", "links" }: the reader highlighted a phrase and maybe asked a question. Answer that, for them.
 - concept.elaborate → { "text", "anec", "html" }: the fuller picture or a follow-up in a running thread. The analogy comes from their world.
@@ -52,5 +52,5 @@ ${MARKER_RULE}
 While you work
 - Notice how they read — what they skip, what they drill into, which framing landed — and write it down with ${T("update_reader")} { notes: [...] }. It persists and follows them into the next document, in any agent.
 - ${T("get_state")}: what the reader sees right now — document text, open panes, goal, profile, notes.
-- ${T("open")}: open a url, or your own text ("open this in rabbithole", "explain X and open it") — pass title, text and, if you like, terms.`;
+- ${T("open")}: open a url, or your own text ("open this in rabbithole", "explain X and open it") — pass title, text and, if you like, terms with their shorts.`;
 }

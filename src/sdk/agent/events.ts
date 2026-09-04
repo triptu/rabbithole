@@ -25,9 +25,19 @@ export interface AnnotatePayload {
   text: string;
   reader: ReaderContext;
 }
+/**
+ * A term to highlight. With `short` the pane opens instantly on click; without it the
+ * page asks concept.explain when the reader clicks.
+ */
+export interface AnnotatedTerm {
+  /** exact phrase from the text; its first occurrence gets highlighted */
+  term: string;
+  /** marked, 1–2 sentences for this reader */
+  short?: string;
+  links?: Link[];
+}
 export interface AnnotateResult {
-  /** exact phrases from the text, first occurrence gets highlighted */
-  terms: string[];
+  terms: AnnotatedTerm[];
   /** optional better title, e.g. for pasted text */
   title?: string;
 }
@@ -117,9 +127,6 @@ function optStr(o: Record<string, unknown>, key: string): string | null {
   const v = o[key];
   return typeof v === "string" && v.trim() ? v : null;
 }
-function strList(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((t): t is string => typeof t === "string" && !!t.trim()).map((t) => t.trim()) : [];
-}
 
 const SEARCH: Record<string, string> = {
   YT: "https://www.youtube.com/results?search_query=",
@@ -145,11 +152,29 @@ export function normalizeLinks(raw: unknown): Link[] {
     .filter((l) => l.t);
 }
 
+/** Accepts `"term"` or `{ term, short?, links? }` entries. */
+export function normalizeTerms(raw: unknown): AnnotatedTerm[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AnnotatedTerm[] = [];
+  for (const t of raw) {
+    if (typeof t === "string") {
+      if (t.trim()) out.push({ term: t.trim() });
+    } else if (t && typeof t === "object") {
+      const o = t as Record<string, unknown>;
+      const term = typeof o.term === "string" ? o.term.trim() : "";
+      if (!term) continue;
+      const short = optStr(o, "short");
+      out.push({ term, ...(short ? { short: short.trim() } : {}), ...(o.links ? { links: normalizeLinks(o.links) } : {}) });
+    }
+  }
+  return out.slice(0, 40);
+}
+
 export function parseAnnotateResult(result: unknown): AnnotateResult {
   const o = asObject(result, "document.annotate");
-  if (!Array.isArray(o.terms)) throw new Error('document.annotate: "terms" must be an array of strings');
+  if (!Array.isArray(o.terms)) throw new Error('document.annotate: "terms" must be an array of { term, short? } or strings');
   const title = optStr(o, "title");
-  return { terms: strList(o.terms).slice(0, 40), ...(title ? { title } : {}) };
+  return { terms: normalizeTerms(o.terms), ...(title ? { title } : {}) };
 }
 
 export function parseShortResult(result: unknown, what = "concept.explain"): ShortResult {

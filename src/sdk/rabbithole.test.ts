@@ -189,7 +189,10 @@ describe("duplex with the agent", () => {
     expect(d.event.payload.reminder).toContain('"terms"');
     await ctx.call("rabbithole_complete_event", {
       eventId: d.event.id,
-      result: { terms: ["oxidative phosphorylation", "ATP", "mitochondria"], title: "Cell power" },
+      result: {
+        terms: [{ term: "oxidative phosphorylation", short: "How cells turn food into [[ATP]] using oxygen." }, "ATP", { term: "mitochondria" }],
+        title: "Cell power",
+      },
     });
     s = rh.store.getState();
     const marked = s.library.documents[docId]!;
@@ -200,6 +203,15 @@ describe("duplex with the agent", () => {
     expect((marked.blocks[0] as { text: string }).text).toBe("[[mitochondria|Mitochondria]] are the powerhouse of the cell.");
     expect((marked.blocks[1] as { text: string }).text).toBe("They make [[ATP]] through [[oxidative phosphorylation]]. ATP again.");
 
+    // a term that came with a short opens instantly; one without still asks the agent
+    rh.reader.openConcept({ conceptId: `${docId}:oxidativephosphorylation`, label: "oxidative phosphorylation" });
+    expect(rh.store.getState().session.panes[0]?.status).toBe("ready");
+    expect(rh.store.getState().library.concepts[`${docId}:oxidativephosphorylation`]?.short).toContain("[[ATP]]");
+    const queuedBefore = rh.store.getState().agent.stats.queued;
+    rh.reader.openConcept({ conceptId: `${docId}:atp`, label: "ATP", fromIndex: 0 });
+    expect(rh.store.getState().session.panes[1]?.status).toBe("loading");
+    expect(rh.store.getState().agent.stats.queued).toBe(queuedBefore + 1);
+
     const state = await ctx.call("rabbithole_get_state");
     expect(state.document.title).toBe("Cell power");
     expect(state.document.text).toBe("Mitochondria are the powerhouse of the cell.\n\nThey make ATP through oxidative phosphorylation. ATP again.");
@@ -209,9 +221,10 @@ describe("duplex with the agent", () => {
     const r = await ctx.call("rabbithole_open", {
       title: "Byzantine generals, briefly",
       text: "# Generals\n\nSeveral generals must agree on a plan while some may be traitors.",
-      terms: ["traitors"],
+      terms: [{ term: "traitors", short: "Generals who send different messages to different peers." }],
     });
     expect(r.status).toBe("ready");
+    expect(rh.store.getState().library.concepts[`${r.docId}:traitors`]?.short).toContain("Generals");
     const doc = rh.store.getState().library.documents[r.docId]!;
     expect(doc.title).toBe("Byzantine generals, briefly");
     expect(doc.blocks[0]).toEqual({ type: "heading", level: 1, text: "Generals" });

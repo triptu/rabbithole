@@ -32,7 +32,8 @@ export function mockAnswer(type: AgentEventType, payload: unknown): AnnotateResu
       const p = payload as PayloadFor<"document.annotate">;
       const words = [...new Set(p.text.match(/[A-Za-z][A-Za-z-]{7,}/g) ?? [])];
       words.sort((a, b) => b.length - a.length);
-      return { terms: words.slice(0, 6), ...(p.title ? {} : { title: "Mock title" }) };
+      const terms = words.slice(0, 6).map((term, i) => (i % 2 === 0 ? { term, short: `“${term}” — a mock quick definition, shown instantly because it came with the term.` } : { term }));
+      return { terms, ...(p.title ? {} : { title: "Mock title" }) };
     }
     case "concept.explain": {
       const p = payload as PayloadFor<"concept.explain">;
