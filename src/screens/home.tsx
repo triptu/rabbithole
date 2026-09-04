@@ -10,10 +10,13 @@ import { DEMO_SUGGESTIONS, GITHUB_URL, visitedDocuments } from "@/sdk";
 export function Home() {
   const reader = useReader();
   const navigate = useNavigate();
+  const [url, setUrl] = useState("");
   const [paste, setPaste] = useState("");
   const recents = useStoreShallow((s) => visitedDocuments(s).slice(0, 5));
 
+  /** the link field wins when both are filled; empty input is a no-op with a hint */
   const submit = async (value: string) => {
+    if (!value.trim()) return reader.toast("Paste a link or some text first.");
     const docId = await reader.openInput(value);
     if (docId) navigate(`/read/${docId}`);
   };
@@ -42,8 +45,10 @@ export function Home() {
           />
         </div>*/}
         <Input
-          onKeyDown={(e) => e.key === "Enter" && submit(e.currentTarget.value)}
-          placeholder="https:// — arxiv, wikipedia, anything"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit(url)}
+          placeholder="https:// — blog post, wikipedia, any article"
           className="mb-2.5 rounded-xl px-4 py-[13px] font-mono text-[13px]"
         />
         <Textarea
@@ -54,7 +59,7 @@ export function Home() {
           placeholder="…or paste a wall of text here"
         />
         <div className="mt-3 flex items-center gap-2.5">
-          <Button variant="primary" size="lg" onClick={() => submit(paste)}>
+          <Button variant="primary" size="lg" onClick={() => submit(url.trim() || paste)}>
             make it readable
           </Button>
           <span className="text-[11.5px] text-faint">⌘↵ works too</span>

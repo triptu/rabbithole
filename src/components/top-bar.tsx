@@ -21,13 +21,6 @@ export function TopBar() {
     reader.close();
     navigate("/");
   };
-  const share = () => {
-    const url = reader.shareLink();
-    if (!url) return;
-    const done = () => reader.toast("Link copied — same rabbit hole, explained in their language.");
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done);
-    else done();
-  };
 
   return (
     <div className="flex h-topbar flex-none items-center gap-2 border-b border-line bg-paper pr-4 pl-5">

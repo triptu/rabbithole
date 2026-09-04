@@ -24,6 +24,15 @@ describe("source parsing", () => {
     ]);
   });
 
+  test("wikipedia via jina: citations dropped, link titles ignored, adjacent bold spans, image links", () => {
+    const raw = `[![Image 1](https://i.png)](https://l)\n\nAn **mRNA****vaccine** is a type of [vaccine](https://en.wikipedia.org/wiki/Vaccine "Vaccine") response.[[1]](https://x#cite_note-1) It works.[[2]](https://x#cite_note-2)[[3]](https://x#cite_note-3)\n\n| Test | Result |\n|---|---|\n| A1c | 5.9 |`;
+    const p = parseSource(raw);
+    expect(p.blocks).toEqual([
+      { type: "paragraph", text: "An mRNA vaccine is a type of vaccine response. It works." },
+      { type: "table", columns: ["Test", "Result"], rows: [[{ text: "A1c" }, { text: "5.9" }]] },
+    ]);
+  });
+
   test("inline markdown is flattened", () => {
     expect(inlineToText("**bold** and `code` and [link](u) and *em*")).toBe("bold and code and link and em");
   });
