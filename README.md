@@ -1,11 +1,10 @@
 # RabbitHole
 
+![Home](assets/app/home.png)
 
 Dense documents are hard to read, even in your own field. Research papers, articles, lab results, tax forms, unfamiliar code. Rabbithole lets you zoom in on the parts you don't understand and the explaining is done by your personal assistant aware about your context.
 
 Try at - https://rabbithole.tushar.ai/
-
-![Home](assets/app/home.png)
 
 ## Where RabbitHole fits
 
@@ -60,32 +59,12 @@ Reader model the agent writes to — notes on how you like things explained
 
 - Support for more types of inputs - PDFs for e.g.
 - More software eng specific coverage - PRs for example.
+- Support to show images if present in source doc
 - URL based state of the whole path which others can open and see the explanation in terms they would understand best.
 - Login and server side storage to carry what you're reading and concepts you're interested in across sessions and AI agents.
 - More proactivity - capture your attention and pass it to the agent. If you're lingering on a paragraph, the agent can proactively offer you help.
 - Suggested actions — "add this to our repo" while reading an engineering blog, or "add this to your slides" if it relates to a presentation you're working on.
 
-
-## How the agent link works
-
-Rabbithole has no server and no bundled model. It registers a few WebMCP tools; your own agent picks them up. You paste two lines into the agent once:
-
-> Rabbithole is open in this tab and exposes WebMCP tools. Call `rabbithole_get_protocol` once, then follow it until I tell you to stop.
-
-`rabbithole_get_protocol` returns the real instructions. From then on the page hands the agent work through a reliable duplex channel (`rabbithole_await_event` / `rabbithole_complete_event`, at-least-once delivery, idempotent completion — see `webmcp-duplex-prototype/`). Every event payload carries a one-line `reminder` of the result shape.
-
-Page → agent events
-
-| event | when | result |
-| --- | --- | --- |
-| `document.annotate` | a document was opened; the text is shown verbatim | `{ terms: string[], title? }` — the page highlights the first occurrence of each |
-| `concept.explain` | the reader clicked a marked term | `{ short, links }` |
-| `selection.ask` | the reader highlighted a phrase (maybe with a question) | `{ short, links }` |
-| `concept.elaborate` | Elaborate / a follow-up in a pane | `{ text, anec, html }` |
-
-Agent → page tools: `rabbithole_get_protocol`, `rabbithole_get_reader` / `rabbithole_update_reader` (role, preferences, standing instructions, goal, and the notes the agent keeps about how you read — the protocol asks the agent to fill these in from its own memory of you before the first event), `rabbithole_get_state`, `rabbithole_open` (a url, or the agent's own text with optional title and terms — "open this in rabbithole").
-
-The pill in the top bar shows the link status. If the agent stops polling it turns to "agent disconnected"; clicking it explains and offers a reconnect prompt.
 
 ## Set up and run
 
@@ -97,34 +76,3 @@ bun run build      # production bundle → dist/ (what Vercel deploys; vercel.js
 ```
 
 Without a WebMCP browser, open the agent drawer (the "agent" pill) and run the mock agent: it answers events through the same duplex tools a real agent would use, so every flow can be exercised locally. "Watch the agent read with me" on the home page is a scripted walkthrough of what a linked agent does.
-
-## Code Details
-
-```
-src/sdk/                    no UI. Everything the app *does*.
-  index.ts                  createRabbithole() → { store, reader, agent }
-  types.ts                  domain model: Document, Block, Concept, Thread, Pane, Profile …
-  store.ts                  zustand vanilla store + mutators (the only place state changes; writes through to Dexie)
-  db.ts                     Dexie schema, load on boot, write-through persister — swap point for a sync engine
-  reader.ts                 use-cases the UI calls: open documents, slide panes, ask, elaborate, bookmarks, profile
-  agent/agent.ts            Agent: queue(event) → duplex channel → on(type, handler); tool registration; activity log
-  agent/events.ts           the page → agent event contract (payloads, results, validators)
-  agent/instructions.ts     paste prompt, protocol text, per-event reminders
-  agent/tools.ts            agent → page tools: get_protocol, get_reader, update_reader, get_state, open
-  agent/duplex-mcp-sdk.js   the reliable await_event / complete_event channel (from webmcp-duplex-prototype, verbatim)
-  agent/mock.ts             dev stand-in agent that drives the real channel
-  content/markers.ts        [[term]] parsing, first-occurrence marking, slugs, ids
-  content/source.ts         pasted text / fetched markdown → verbatim blocks;  content/fetch.ts  url → text (Jina)
-  seed/                     the demo documents and concepts
-
-src/App.tsx                 router + shell;  src/hooks.ts  useStore(selector), useReader(), useAgent()
-src/components/             top bar, agent drawer, toast, <Marked/> (clickable terms), ui/ primitives
-src/screens/home.tsx · history.tsx · profile.tsx · about.tsx
-src/screens/reader/         reader.tsx (stepper + pane strip), article-pane, concept-pane, blocks (one renderer per block type),
-                            selection-popover (highlight-to-ask), use-sliding-panes (the sticky-pane geometry)
-styles/globals.css          the palette, fonts and keyframes as Tailwind theme tokens
-```
-
-Flux architecture - Data flow is one-directional: UI → `reader.*` / `agent.queue()` → store mutation (+ Dexie) → React re-renders through selectors. Agent results arrive through `rabbithole_complete_event`, are validated, and land in the store the same way.
-
-Adding a new input type (a PDF, a PR) means: a new `Block` variant in `sdk/types.ts`, code that produces it (an event in `agent/events.ts` or a parser in `sdk/content`), and a renderer in `screens/reader/blocks.tsx`.
