@@ -24,16 +24,25 @@ I'm also trying to imagine a future where web feels more collaborative, where yo
 
 ## App screenshots
 
+Asking codex to explain a blog with RabbitHole -
+
 ![App in Codex · Asking in Codex to help explain sth](assets/app/codex-app.png)
 
+
+A view with explanation panes open -
 ![Reading a paper, with a concept pane open](assets/app/example1.png)
 
+If there are more panes than what can fit on the screen they collapse as vertical columns(left in this pic) -
 ![Going deeper: several panes in the trail](assets/app/example2.png)
+
+History of all pages you have visited is preserved -
 
 ![History · pages](assets/app/pages-history.png)
 
+As well as the history of all concepts you drilled into -
 ![History · concepts](assets/app/concept-history.png)
 
+And your profile, mutable by both you and your agent -
 ![Profile · the agent's picture of you](assets/app/profile.png)
 
 ## What it does
